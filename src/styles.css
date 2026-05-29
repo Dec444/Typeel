@@ -459,3 +459,39 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ---------- export dropdown ---------- */
+.menu-wrap {
+  position: relative;
+}
+.drop-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  min-width: 160px;
+  background: var(--chrome);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 5px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.drop-menu.hidden {
+  display: none;
+}
+.drop-item {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 7px;
+}
+.drop-item:hover {
+  background: var(--hover);
+}

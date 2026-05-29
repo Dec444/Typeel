@@ -4,6 +4,7 @@ import "@milkdown/crepe/theme/frame.css";
 import "./styles.css";
 
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
 import welcomeMd from "./welcome.md?raw";
 
@@ -26,6 +27,8 @@ const wordcountBtn = document.getElementById("wordcount") as HTMLElement;
 const blocktypeEl = document.getElementById("blocktype") as HTMLElement;
 const themeBtn = document.getElementById("theme-btn") as HTMLElement;
 const themeMenu = document.getElementById("theme-menu") as HTMLElement;
+const exportBtn = document.getElementById("export-btn") as HTMLElement;
+const exportMenu = document.getElementById("export-menu") as HTMLElement;
 
 // ---------- editor lifecycle ----------
 async function mountEditor(content: string): Promise<void> {
@@ -278,6 +281,104 @@ function highlightActive(path: string): void {
   });
 }
 
+// ---------- export ----------
+const EXPORT_CSS = `
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #ffffff;
+    color: #1f2328;
+    font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
+    font-size: 16px;
+  }
+  .doc { max-width: 720px; margin: 0 auto; padding: 56px 32px 80px; }
+  .doc h1, .doc h2, .doc h3, .doc h4 { line-height: 1.25; font-weight: 600; margin: 1.6em 0 .5em; }
+  .doc h1 { font-size: 2em; margin-top: 0; }
+  .doc h2 { font-size: 1.5em; }
+  .doc h3 { font-size: 1.25em; }
+  .doc p, .doc ul, .doc ol, .doc blockquote, .doc pre, .doc table { margin: 0 0 1em; }
+  .doc a { color: #3056d3; text-decoration: none; }
+  .doc code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .9em; background: #f1f1f3; padding: .15em .4em; border-radius: 4px;
+  }
+  .doc pre { background: #f6f6f8; padding: 14px 16px; border-radius: 8px; overflow: auto; }
+  .doc pre code { background: none; padding: 0; }
+  .doc blockquote { border-left: 3px solid #d0d0d6; padding-left: 16px; color: #57606a; margin-left: 0; }
+  .doc table { border-collapse: collapse; width: 100%; }
+  .doc th, .doc td { border: 1px solid #d0d0d6; padding: 7px 12px; text-align: left; }
+  .doc th { background: #f6f6f8; }
+  .doc img { max-width: 100%; }
+  .doc hr { border: none; border-top: 1px solid #e2e2e6; margin: 2em 0; }
+  .doc li { margin: .25em 0; }
+  .doc input[type="checkbox"] { margin-right: .4em; }
+  @page { margin: 18mm; }
+  @media print {
+    .doc { max-width: none; padding: 0; }
+    .doc a { color: #1f2328; }
+  }
+`;
+
+function docName(): string {
+  if (currentPath) {
+    return basename(currentPath).replace(/\.[^.]+$/, "") || "Untitled";
+  }
+  return titleEl.textContent?.trim() || "Untitled";
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function buildExportHtml(): string {
+  const body = marked.parse(getContent(), { gfm: true }) as string;
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(docName())}</title>
+<style>${EXPORT_CSS}</style>
+</head>
+<body><main class="doc">${body}</main></body>
+</html>`;
+}
+
+async function exportHtml(): Promise<void> {
+  const chosen = await save({
+    defaultPath: docName() + ".html",
+    filters: [{ name: "HTML", extensions: ["html"] }],
+  });
+  if (!chosen) return;
+  try {
+    await invoke("write_file", { path: chosen, contents: buildExportHtml() });
+  } catch (e) {
+    alert("Could not export HTML:\n" + e);
+  }
+}
+
+// Render the document in a clean print layout and open the system print
+// dialog, where the user can choose "Save as PDF".
+function exportPdf(): void {
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.cssText =
+    "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+  iframe.srcdoc = buildExportHtml();
+  iframe.addEventListener("load", () => {
+    const win = iframe.contentWindow;
+    if (!win) return;
+    setTimeout(() => {
+      win.focus();
+      win.print();
+      setTimeout(() => iframe.remove(), 1500);
+    }, 60);
+  });
+  document.body.appendChild(iframe);
+}
+
 // ---------- theme ----------
 function applyTheme(): void {
   const root = document.documentElement;
@@ -318,10 +419,21 @@ themeMenu.querySelectorAll<HTMLElement>(".theme-opt").forEach((opt) => {
     themeMenu.classList.add("hidden");
   });
 });
+exportBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  exportMenu.classList.toggle("hidden");
+});
+exportMenu.querySelectorAll<HTMLElement>(".drop-item").forEach((item) => {
+  item.addEventListener("click", () => {
+    exportMenu.classList.add("hidden");
+    if (item.dataset.fmt === "pdf") exportPdf();
+    else exportHtml();
+  });
+});
 document.addEventListener("click", (e) => {
-  if (e.target !== themeBtn && !themeMenu.contains(e.target as Node)) {
-    themeMenu.classList.add("hidden");
-  }
+  const t = e.target as Node;
+  if (e.target !== themeBtn && !themeMenu.contains(t)) themeMenu.classList.add("hidden");
+  if (e.target !== exportBtn && !exportMenu.contains(t)) exportMenu.classList.add("hidden");
 });
 
 // reliable dirty signal: any input inside the editor surface
