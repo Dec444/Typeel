@@ -15,7 +15,7 @@ rather compile it themselves, or who are on a platform without a ready-made down
 
 ### Option 1 — Download a ready-made installer (easiest)
 
-Go to the [**Releases**](https://github.com/<your-username>/typeel/releases) page and
+Go to the [**Releases**](https://github.com/Dec444/Typeel/releases) page and
 download the file for your computer:
 
 | Your system | Download |
