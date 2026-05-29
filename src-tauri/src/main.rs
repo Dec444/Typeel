@@ -41,17 +41,14 @@ fn list_dir(path: String) -> Result<Vec<Entry>, String> {
         }
 
         let is_dir = p.is_dir();
-        let is_markdown = name.ends_with(".md")
-            || name.ends_with(".markdown")
-            || name.ends_with(".mdown");
 
-        if is_dir || is_markdown {
-            entries.push(Entry {
-                name,
-                path: p.to_string_lossy().to_string(),
-                is_dir,
-            });
-        }
+        // Show every visible file and folder so the whole project is
+        // browsable, not only Markdown files.
+        entries.push(Entry {
+            name,
+            path: p.to_string_lossy().to_string(),
+            is_dir,
+        });
     }
 
     // folders first, then alphabetical (case-insensitive)

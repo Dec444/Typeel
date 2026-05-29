@@ -20,11 +20,11 @@ the packaged app is a few MB rather than ~150 MB.
 
 There are two completely separate situations — don't confuse them:
 
-- **Typeel** end users install **nothing** but the app itself. You
+- **People using Typeel** (your users) install **nothing** but the app itself. You
   hand them a finished installer — `.dmg`/`.app` on macOS, `.msi`/`.exe` on Windows,
   `.AppImage`/`.deb` on Linux — they double-click it, done. No Xcode, no Rust, no
   toolchain. The app is self-contained and uses the OS's built-in webview at runtime.
-- **Developers**, need a build toolchain (below). Note this is the
+- **You, compiling the app**, need a build toolchain (below). Note this is the
   **Xcode Command Line Tools** (`xcode-select --install`) — *not* the multi-gigabyte
   Xcode IDE from the App Store. Or skip installing anything locally and let GitHub
   build all three platforms for you (see "Releasing in the cloud").

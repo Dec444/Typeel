@@ -16,7 +16,12 @@
           <button id="open-folder" class="icon-btn" title="Open folder">&#9707;</button>
         </div>
         <div id="file-tree" class="file-tree">
-          <p class="empty-hint">Open a folder to browse your Markdown files.</p>
+          <div class="pinned">
+            <div class="tree-row file welcome-row" id="welcome-row">Welcome</div>
+          </div>
+          <div id="folder-tree" class="folder-tree">
+            <p class="empty-hint">Open a folder to browse your Markdown files.</p>
+          </div>
         </div>
       </aside>
 
@@ -25,11 +30,33 @@
           <span id="doc-title">Untitled</span>
           <span id="dirty-dot" class="dirty-dot hidden" title="Unsaved changes">&#9679;</span>
           <div class="spacer"></div>
+          <button id="new-file" class="tbtn">New</button>
           <button id="open-file" class="tbtn">Open</button>
           <button id="save-file" class="tbtn">Save</button>
+          <div class="theme-wrap">
+            <button id="theme-btn" class="tbtn" title="Choose theme">Theme</button>
+            <div id="theme-menu" class="theme-menu hidden">
+              <button class="theme-opt" data-name="bw">
+                <span class="sw"><i style="background:#ffffff"></i><i style="background:#0f0f10"></i><i style="background:#8a8a8e"></i></span>
+                <span class="to-text"><b>Black &amp; White</b><small>White / Black · neutral grey</small></span>
+              </button>
+              <button class="theme-opt" data-name="a">
+                <span class="sw"><i style="background:#faefe9"></i><i style="background:#4a2c3f"></i><i style="background:#f4a384"></i></span>
+                <span class="to-text"><b>Plum &amp; Peach</b><small>Baby Blossom · Obsidian Plum · Creamy Peach</small></span>
+              </button>
+              <button class="theme-opt" data-name="b">
+                <span class="sw"><i style="background:#e2d5c2"></i><i style="background:#2e4453"></i><i style="background:#486d83"></i></span>
+                <span class="to-text"><b>Cream &amp; Slate</b><small>Onion White · Slate · Blue Loneliness</small></span>
+              </button>
+            </div>
+          </div>
           <button id="toggle-theme" class="tbtn" title="Toggle light / dark">&#9680;</button>
         </header>
         <div id="editor" class="crepe"></div>
+        <footer id="statusbar">
+          <span id="blocktype" class="statinfo"></span>
+          <button id="wordcount" class="statbtn" title="Toggle word count"></button>
+        </footer>
       </main>
     </div>
 
