@@ -1,0 +1,266 @@
+@font-face {
+  font-family: "Tilt Neon";
+  src: url("./assets/fonts/TiltNeon.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg: #f4efe4;
+  --chrome: #ece5d6;
+  --border: #ddd3bf;
+  --text: #3a352c;
+  --text-soft: #6a6354;
+  --accent: #b4622f;
+  --hover: rgba(70, 55, 30, 0.07);
+  --sidebar-w: 252px;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #20262e;
+  --chrome: #191e24;
+  --border: #333c47;
+  --text: #e8ebee;
+  --text-soft: #9aa3ad;
+  --accent: #e0935f;
+  --hover: rgba(255, 255, 255, 0.07);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Tilt Neon", ui-sans-serif, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+/* ---------- sidebar ---------- */
+#sidebar {
+  width: var(--sidebar-w);
+  flex: 0 0 auto;
+  background: var(--chrome);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.side-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-weight: 400;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.logo-mark {
+  color: var(--text);
+  flex: 0 0 auto;
+}
+.tagline {
+  font-size: 11px;
+  color: var(--text-soft);
+  letter-spacing: 0.01em;
+  padding-left: 1px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 15px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  line-height: 1;
+}
+.icon-btn:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.file-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 6px;
+  font-size: 13px;
+}
+
+.empty-hint {
+  color: var(--text-soft);
+  font-size: 12.5px;
+  line-height: 1.55;
+  padding: 8px 10px;
+}
+
+.tree-list {
+  list-style: none;
+  margin: 0;
+  padding-left: 13px;
+}
+.file-tree > .tree-list {
+  padding-left: 2px;
+}
+
+.tree-row {
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+  user-select: none;
+}
+.tree-row.folder {
+  color: var(--text-soft);
+  font-weight: 500;
+}
+.tree-row:hover {
+  background: var(--hover);
+}
+.tree-row.file.active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+/* ---------- main / toolbar ---------- */
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--chrome);
+  user-select: none;
+}
+
+#doc-title {
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.dirty-dot {
+  color: var(--accent);
+  font-size: 10px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.tbtn {
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text-soft);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 6px 11px;
+  cursor: pointer;
+}
+.tbtn:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ---------- editor surface ---------- */
+#editor.crepe {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+.crepe .milkdown {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 44px 24px 30vh;
+  font-family: "Tilt Neon", ui-sans-serif, sans-serif;
+  --crepe-font-title: "Tilt Neon", ui-sans-serif, sans-serif;
+  --crepe-font-default: "Tilt Neon", ui-sans-serif, sans-serif;
+  --crepe-color-background: #f4efe4;
+  --crepe-color-on-background: #3a352c;
+  --crepe-color-surface: #f4efe4;
+  --crepe-color-surface-low: #ece5d6;
+  --crepe-color-on-surface: #3a352c;
+  --crepe-color-on-surface-variant: #6a6354;
+  --crepe-color-outline: #ddd3bf;
+  --crepe-color-primary: #b4622f;
+  --crepe-color-secondary: #f0e9dc;
+  --crepe-color-on-secondary: #3a352c;
+  --crepe-color-inverse: #3a352c;
+  --crepe-color-on-inverse: #f4efe4;
+  --crepe-color-inline-code: #b4622f;
+  --crepe-color-error: #c0392b;
+  --crepe-color-hover: #ece5d6;
+  --crepe-color-selected: #efe7d8;
+  --crepe-color-inline-area: #efe8da;
+}
+
+/* Dark-mode overrides for Crepe's design tokens.
+   The first four are the documented core surfaces; the rest are
+   best-effort and safely ignored if a token name changes upstream. */
+.dark .crepe .milkdown {
+  --crepe-color-background: #20262e;
+  --crepe-color-on-background: #e8ebee;
+  --crepe-color-surface: #20262e;
+  --crepe-color-surface-low: #191e24;
+  --crepe-color-on-surface: #e8ebee;
+  --crepe-color-on-surface-variant: #9aa3ad;
+  --crepe-color-outline: #333c47;
+  --crepe-color-primary: #e0935f;
+  --crepe-color-secondary: #2a323c;
+  --crepe-color-on-secondary: #e8ebee;
+  --crepe-color-inverse: #e8ebee;
+  --crepe-color-on-inverse: #20262e;
+  --crepe-color-inline-code: #e0935f;
+  --crepe-color-error: #ff9aa0;
+  --crepe-color-hover: #191e24;
+  --crepe-color-selected: #2d3742;
+  --crepe-color-inline-area: #191e24;
+}

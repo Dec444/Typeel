@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Typeel</title>
+  </head>
+  <body>
+    <div id="app">
+      <aside id="sidebar">
+        <div class="side-head">
+          <div class="brand">
+            <span class="logo"><svg class="logo-mark" viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><path d="M64 24 A30 30 0 1 0 64 72" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><path d="M58 34 A18 18 0 1 0 58 62" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><rect x="43" y="38" width="6" height="20" rx="3" style="fill:var(--accent)"/></svg>Typeel</span>
+            <span class="tagline">Peel your thoughts.</span>
+          </div>
+          <button id="open-folder" class="icon-btn" title="Open folder">&#9707;</button>
+        </div>
+        <div id="file-tree" class="file-tree">
+          <p class="empty-hint">Open a folder to browse your Markdown files.</p>
+        </div>
+      </aside>
+
+      <main id="main">
+        <header id="toolbar">
+          <span id="doc-title">Untitled</span>
+          <span id="dirty-dot" class="dirty-dot hidden" title="Unsaved changes">&#9679;</span>
+          <div class="spacer"></div>
+          <button id="open-file" class="tbtn">Open</button>
+          <button id="save-file" class="tbtn">Save</button>
+          <button id="toggle-theme" class="tbtn" title="Toggle light / dark">&#9680;</button>
+        </header>
+        <div id="editor" class="crepe"></div>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
