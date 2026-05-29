@@ -1,146 +1,154 @@
 # Typeel
 
-A lightweight, free, cross-platform **WYSIWYG Markdown editor** — a Typora-style
-writing experience built with [Tauri 2](https://v2.tauri.app/) and the
-[Milkdown **Crepe**](https://milkdown.dev/) editor (Crepe is explicitly inspired by Typora).
+**Peel your thoughts.** Typeel is a free, cross-platform Markdown editor with a clean,
+distraction-free writing experience — what you type is formatted live, right in front of
+you, with no split-screen preview to fuss with.
 
-Because it uses Tauri (the OS-native webview) instead of bundling a full browser,
-the packaged app is a few MB rather than ~150 MB.
+<!-- Add a screenshot at docs/screenshot.png, then uncomment:
+![Typeel screenshot](docs/screenshot.png)
+-->
 
-## Features in this scaffold
+## Getting Typeel
 
-- True inline WYSIWYG editing (Crepe): headings, lists, tables, task lists,
-  code blocks with highlighting, images, math, slash `/` block menu
-- Sidebar folder browser for your `.md` files (lazy-expanding tree)
-- Open / Save with native dialogs, `Ctrl/Cmd+S` to save, `Ctrl/Cmd+O` to open
-- Unsaved-changes indicator and discard guard
-- Light / dark theme toggle (persisted)
+There are two ways to get Typeel. **Most people want Option 1.** Option 2 is for those who'd
+rather compile it themselves, or who are on a platform without a ready-made download.
 
-## Who needs to install what
+### Option 1 — Download a ready-made installer (easiest)
 
-There are two completely separate situations — don't confuse them:
+Go to the [**Releases**](https://github.com/<your-username>/typeel/releases) page and
+download the file for your computer:
 
-- **Typeel end users** install **nothing** but the app itself. You
-  hand them a finished installer — `.dmg`/`.app` on macOS, `.msi`/`.exe` on Windows,
-  `.AppImage`/`.deb` on Linux — they double-click it, done. No Xcode, no Rust, no
-  toolchain. The app is self-contained and uses the OS's built-in webview at runtime.
-- **Developers** need a build toolchain (below). Note this is the
-  **Xcode Command Line Tools** (`xcode-select --install`) — *not* the multi-gigabyte
-  Xcode IDE from the App Store. Or skip installing anything locally and let GitHub
-  build all three platforms for you (see "Releasing in the cloud").
+| Your system | Download |
+|-------------|----------|
+| macOS (Apple Silicon — M1 or newer) | the `aarch64` `.dmg` |
+| macOS (Intel) | the `x64` / `x86_64` `.dmg` |
+| Windows | the `.msi` or `.exe` |
+| Linux | the `.AppImage` or `.deb` |
 
-## Building it yourself — prerequisites
+Then install it:
 
-1. **Node.js** 18+ and npm — https://nodejs.org
-2. **Rust** (stable) — https://rustup.rs
-3. **Platform build deps** — follow the one-time setup for your OS:
-   https://v2.tauri.app/start/prerequisites/
-   - macOS: Xcode Command Line Tools only (`xcode-select --install`)
-   - Windows: WebView2 (preinstalled on Win 11) + MSVC build tools
-   - Linux: `libwebkit2gtk-4.1-dev`, `librsvg2-dev`, `patchelf`, etc. (see the link)
+- **macOS** — open the `.dmg` and drag **Typeel** into your Applications folder. The first
+  time you launch it, right-click (or Control-click) the Typeel icon and choose **Open**,
+  then click **Open** in the dialog. You only have to do this once.
+- **Windows** — run the installer. If a blue "Windows protected your PC" box appears, click
+  **More info**, then **Run anyway**. Once only.
+- **Linux** — for an `.AppImage`, make it executable and run it:
+  ```bash
+  chmod +x Typeel*.AppImage
+  ./Typeel*.AppImage
+  ```
+  For a `.deb`, install it with your package manager, e.g. `sudo apt install ./Typeel*.deb`.
 
-## Run it
+> The one-time prompts above show up simply because Typeel is a small independent app.
+> It's safe to open.
 
-```bash
-npm install          # installs frontend deps (downloads Rust crates on first run too)
-npm run tauri:dev    # launches the desktop app with hot reload
-```
+### Option 2 — Build it yourself from source
 
-The first `tauri:dev` compiles the Rust side and will take a few minutes; later
-runs are fast.
+If you'd rather compile Typeel from the source code, you'll need a few free developer tools
+and then a single build command.
 
-## Build a distributable
+**1. Install the prerequisites**
 
-```bash
-npm run tauri:build
-```
+- [Node.js](https://nodejs.org) 18 or newer (includes npm)
+- [Rust](https://rustup.rs) (stable)
+- Your platform's one-time build dependencies for Tauri — see
+  https://v2.tauri.app/start/prerequisites/
+  - **macOS:** the Xcode **Command Line Tools** only — run `xcode-select --install`
+    (this is *not* the multi-gigabyte Xcode app).
+  - **Windows:** WebView2 (already on Windows 11) plus the Microsoft C++ Build Tools.
+  - **Linux:** `libwebkit2gtk-4.1-dev`, `librsvg2-dev`, `patchelf`, and a few others
+    listed at the link above.
 
-Installers/bundles land in `src-tauri/target/release/bundle/`.
-
-## Releasing in the cloud (no local toolchain needed)
-
-`.github/workflows/release.yml` builds installers for macOS (Apple Silicon + Intel),
-Windows, and Linux on GitHub's runners, which already have every toolchain
-preinstalled — so you can ship all three platforms without a Mac, without Xcode,
-and without installing anything locally.
-
-To cut a release:
+**2. Get the code**
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git clone https://github.com/<your-username>/typeel.git
+cd typeel
 ```
 
-That triggers the workflow; a few minutes later a **draft GitHub Release** appears
-with all the installers attached. Review it and hit publish. (You can also run it
-by hand from the repo's Actions tab via "Run workflow".)
+**3. Build the app**
 
-One-time setup: in the repo's Settings → Actions → General → Workflow permissions,
-select "Read and write permissions" so the action can create the release. Otherwise
-the build succeeds but fails at the upload step with "Resource not accessible by
-integration".
-
-Two notes on distribution:
-
-- **macOS "damaged" warning.** Unsigned Apple Silicon builds downloaded from the web
-  can be flagged as damaged. The proper fix is code-signing + notarization (needs an
-  Apple Developer account, $99/yr — see the Tauri macOS signing guide); as a stopgap,
-  an ad-hoc signing identity avoids the "damaged" message.
-- **Windows SmartScreen.** Unsigned `.exe`/`.msi` installers show a "Windows protected
-  your PC" prompt until you sign with a code-signing certificate.
-
-Neither blocks the app from running — they're trust prompts that signing removes.
-
-## Project layout
-
-```
-typeel/
-├─ index.html              # app shell (sidebar + toolbar + editor mount)
-├─ src/
-│  ├─ main.ts              # editor lifecycle, file ops, folder tree, theme
-│  ├─ styles.css           # chrome styling + Crepe light/dark tokens
-│  └─ assets/fonts/        # bundled Tilt Neon font
-├─ src-tauri/
-│  ├─ src/main.rs          # read_file / write_file / list_dir commands
-│  ├─ Cargo.toml
-│  ├─ tauri.conf.json      # window + bundle config
-│  ├─ icons/               # app icon (peeled-layers mark)
-│  └─ capabilities/default.json
-├─ .github/workflows/
-│  └─ release.yml          # cloud build for macOS / Windows / Linux
-└─ package.json
+```bash
+npm install          # downloads dependencies (first run also fetches Rust crates)
+npm run tauri:build  # compiles Typeel and creates an installer
 ```
 
-## How it fits together
+The first build compiles the Rust side and takes a few minutes. When it finishes, your
+installer/app is in `src-tauri/target/release/bundle/` — open it like any other app.
 
-File I/O is done through **custom Rust commands** (`read_file`, `write_file`,
-`list_dir`) rather than the `fs` plugin. This sidesteps Tauri's filesystem
-permission scoping entirely — the frontend asks the native dialog for a path,
-then hands that path to Rust, which has full disk access. The only plugin
-enabled is `dialog` (for the native pickers).
+> Just want to run it without making an installer? Use `npm run tauri:dev` to launch Typeel
+> directly (with live reload while you poke around).
 
-The editor itself is a `Crepe` instance mounted into `#editor`. Opening a file
-destroys and recreates the instance with the new content; saving calls
-`crepe.getMarkdown()` and writes it back.
+## Writing
 
-## Ideas to extend
+Typeel formats text as you go — type Markdown and it becomes formatted content instantly.
 
-- **Recent files / reopen last folder** — persist paths in `localStorage`
-- **Tabs** — keep multiple `Crepe` instances and swap the mounted one
-- **Export to PDF/HTML** — render the markdown and use Tauri's print or a Rust crate
-- **Outline panel** — parse headings from `getMarkdown()` into a jump list
-- **Theme tuning** — copy the full token set from
-  `node_modules/@milkdown/crepe/lib/theme/` and adjust the `.dark .crepe .milkdown`
-  block in `styles.css`
-- **File watching / auto-reload** — add `tauri-plugin-fs` `watch()` or a Rust watcher
-- **App menu & shortcuts** — `@tauri-apps/api/menu`
+Start a line with one of these (followed by a space):
 
-## Notes
+| Type this | You get |
+|-----------|---------|
+| `# ` | Heading 1 (use `## `, `### ` for smaller headings) |
+| `- ` or `* ` | Bullet list |
+| `1. ` | Numbered list |
+| `- [ ] ` | Checkbox / to-do item |
+| `> ` | Quote |
+| Three backticks | Code block |
+| `---` | Horizontal divider |
 
-- The icons in `src-tauri/icons/` are the Typeel logo (peeled layers + cursor). To
-  regenerate the full set from any square PNG: `npm run tauri icon path/to/logo.png`.
-- `crepe.getMarkdown()` can throw on certain malformed nodes (e.g. a code block
-  with no language); `getContent()` guards against this by falling back to the
-  last-saved text.
+For inline formatting, surround text with `**` for **bold**, `*` for *italic*, and
+backticks for `code`. Selecting any text also pops up a small formatting toolbar.
 
-MIT — do whatever you like with it.
+**The `/` menu.** Type `/` on an empty line to open a menu for inserting things — headings,
+tables, images, code blocks, and more.
+
+**Rearranging.** Hover over a paragraph or heading and a handle (the six dots) appears to its
+left. Drag that handle to move the block up or down; click the **+** next to it to add a new
+block.
+
+**Knowing where you are.** The bottom-left of the window always shows the current block type
+(Heading 1, Paragraph, Quote, and so on), so you're never guessing.
+
+## Opening & saving files
+
+- **New document** — the **New** button, or `Ctrl/Cmd + N`.
+- **Open a file** — the **Open** button, or `Ctrl/Cmd + O`. The file's folder appears in the
+  sidebar so you can hop between nearby files.
+- **Browse a folder** — click the folder icon at the top of the sidebar to see a whole folder
+  as a file tree.
+- **Save** — the **Save** button, or `Ctrl/Cmd + S`. A dot beside the filename means you have
+  unsaved changes.
+
+## Word count
+
+The bottom-right shows a live word count. Click it to hide or show the count whenever you like.
+
+## Themes
+
+Click **Theme** in the toolbar to choose a look — **Black & White**, **Plum & Peach**, or
+**Cream & Slate** — and use the ◐ button beside it to switch between light and dark. Your
+choice is remembered next time you open the app.
+
+## Exporting
+
+Click **Export** and pick:
+
+- **HTML file** — saves a clean, self-contained web page of your document.
+- **PDF** — opens your document in your web browser with the print dialog ready; choose
+  **Save as PDF** there to create the PDF.
+
+## Keyboard shortcuts
+
+| Action | Shortcut |
+|--------|----------|
+| New document | `Ctrl/Cmd + N` |
+| Open file | `Ctrl/Cmd + O` |
+| Save | `Ctrl/Cmd + S` |
+
+## Feedback
+
+Found a bug or have an idea? Please open an issue on the
+[GitHub repository](https://github.com/<your-username>/typeel/issues).
+
+---
+
+Free and open source under the [MIT license](LICENSE).
