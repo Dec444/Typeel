@@ -1,5 +1,10 @@
 name: release
 
+# Build installers for macOS (Apple Silicon + Intel), Windows, and Linux in the
+# cloud — no local toolchain or Xcode required. Push a version tag to trigger,
+# e.g.  git tag v0.1.0 && git push origin v0.1.0
+# You can also run it manually from the Actions tab (workflow_dispatch).
+
 on:
   workflow_dispatch:
   push:
@@ -42,6 +47,7 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
+          # Only needed on the macOS runners (so the Windows/Linux jobs skip it).
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Cache Rust build
@@ -55,12 +61,6 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Typeel ${{ github.ref_name }}'
