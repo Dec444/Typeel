@@ -127,7 +127,11 @@ async function openFileDialog(): Promise<void> {
     multiple: false,
     filters: [{ name: "Markdown", extensions: ["md", "markdown", "mdown", "txt"] }],
   });
-  if (typeof selected === "string") await loadFile(selected);
+  if (typeof selected !== "string") return;
+  await loadFile(selected);
+  // Reveal the file's folder + siblings in the sidebar.
+  await showFolder(dirname(selected));
+  highlightActive(selected);
 }
 
 async function loadFile(path: string): Promise<void> {
@@ -171,6 +175,12 @@ function basename(p: string): string {
   return p.split(/[\\/]/).pop() || p;
 }
 
+function dirname(p: string): string {
+  const idx = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
+  if (idx < 0) return p;
+  return p.slice(0, idx) || "/";
+}
+
 // ---------- new / welcome ----------
 async function newFile(): Promise<void> {
   if (dirty && !confirm("Discard unsaved changes?")) return;
@@ -202,10 +212,7 @@ interface Entry {
   is_dir: boolean;
 }
 
-async function openFolderDialog(): Promise<void> {
-  const dir = await open({ directory: true, multiple: false });
-  if (typeof dir !== "string") return;
-
+async function showFolder(dir: string): Promise<void> {
   folderTreeEl.innerHTML = "";
 
   // Show the project folder name as a collapsible root, so it stays
@@ -224,6 +231,12 @@ async function openFolderDialog(): Promise<void> {
 
   folderTreeEl.appendChild(root);
   folderTreeEl.appendChild(tree);
+}
+
+async function openFolderDialog(): Promise<void> {
+  const dir = await open({ directory: true, multiple: false });
+  if (typeof dir !== "string") return;
+  await showFolder(dir);
 }
 
 async function buildTree(dirPath: string): Promise<HTMLElement> {
@@ -282,10 +295,11 @@ function highlightActive(path: string): void {
 }
 
 // ---------- export ----------
-const EXPORT_CSS = `
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
+const DOC_CSS = `
+  .doc {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 56px 32px 80px;
     background: #ffffff;
     color: #1f2328;
     font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -293,7 +307,6 @@ const EXPORT_CSS = `
     line-height: 1.7;
     font-size: 16px;
   }
-  .doc { max-width: 720px; margin: 0 auto; padding: 56px 32px 80px; }
   .doc h1, .doc h2, .doc h3, .doc h4 { line-height: 1.25; font-weight: 600; margin: 1.6em 0 .5em; }
   .doc h1 { font-size: 2em; margin-top: 0; }
   .doc h2 { font-size: 1.5em; }
@@ -314,11 +327,6 @@ const EXPORT_CSS = `
   .doc hr { border: none; border-top: 1px solid #e2e2e6; margin: 2em 0; }
   .doc li { margin: .25em 0; }
   .doc input[type="checkbox"] { margin-right: .4em; }
-  @page { margin: 18mm; }
-  @media print {
-    .doc { max-width: none; padding: 0; }
-    .doc a { color: #1f2328; }
-  }
 `;
 
 function docName(): string {
@@ -332,17 +340,25 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function buildExportHtml(): string {
-  const body = marked.parse(getContent(), { gfm: true }) as string;
+function docBodyHtml(): string {
+  return marked.parse(getContent(), { gfm: true }) as string;
+}
+
+function buildExportHtml(autoPrint = false): string {
+  const printScript = autoPrint
+    ? `<script>window.addEventListener("load",function(){setTimeout(function(){try{window.print();}catch(e){}},350);});<\/script>`
+    : "";
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(docName())}</title>
-<style>${EXPORT_CSS}</style>
+<style>html, body { margin: 0; background: #ffffff; }
+@page { margin: 18mm; }
+${DOC_CSS}</style>
 </head>
-<body><main class="doc">${body}</main></body>
+<body><main class="doc">${docBodyHtml()}</main>${printScript}</body>
 </html>`;
 }
 
@@ -359,24 +375,19 @@ async function exportHtml(): Promise<void> {
   }
 }
 
-// Render the document in a clean print layout and open the system print
-// dialog, where the user can choose "Save as PDF".
-function exportPdf(): void {
-  const iframe = document.createElement("iframe");
-  iframe.setAttribute("aria-hidden", "true");
-  iframe.style.cssText =
-    "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
-  iframe.srcdoc = buildExportHtml();
-  iframe.addEventListener("load", () => {
-    const win = iframe.contentWindow;
-    if (!win) return;
-    setTimeout(() => {
-      win.focus();
-      win.print();
-      setTimeout(() => iframe.remove(), 1500);
-    }, 60);
-  });
-  document.body.appendChild(iframe);
+// macOS WebKit (and thus the Tauri webview) does not implement JavaScript
+// printing, so we render the document to a temp file and open it in the
+// user's default browser, where the print dialog appears automatically and
+// "Save as PDF" is reliably available on every platform.
+async function exportPdf(): Promise<void> {
+  try {
+    await invoke("open_html_in_browser", {
+      html: buildExportHtml(true),
+      name: docName(),
+    });
+  } catch (e) {
+    alert("Could not open the document for PDF export:\n" + e);
+  }
 }
 
 // ---------- theme ----------
