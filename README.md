@@ -62,7 +62,7 @@ and then a single build command.
 **2. Get the code**
 
 ```bash
-git clone https://github.com/<your-username>/typeel.git
+git clone https://github.com/Dec444/Typeel.git
 cd typeel
 ```
 
