@@ -27,16 +27,28 @@ download the file for your computer:
 
 Then install it:
 
-- **macOS** — open the `.dmg` and drag **Typeel** into your Applications folder. The first
-  time you launch it, right-click (or Control-click) the Typeel icon and choose **Open**,
-  then click **Open** in the dialog. You only have to do this once.
+- **macOS** — open the `.dmg` and drag **Typeel** into your Applications folder.
+  Because Typeel isn't signed by Apple yet, macOS may say it's *"damaged and can't be
+  opened"* — it isn't; that's just macOS blocking an unsigned download. To clear it, open
+  **Terminal** (⌘-Space, type "Terminal") and run this once:
+
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/Typeel.app
+  ```
+
+  Then open Typeel normally. (The command only removes the "downloaded from the internet"
+  flag — it doesn't change the app.)
+
 - **Windows** — run the installer. If a blue "Windows protected your PC" box appears, click
   **More info**, then **Run anyway**. Once only.
+
 - **Linux** — for an `.AppImage`, make it executable and run it:
+
   ```bash
   chmod +x Typeel*.AppImage
   ./Typeel*.AppImage
   ```
+
   For a `.deb`, install it with your package manager, e.g. `sudo apt install ./Typeel*.deb`.
 
 > The one-time prompts above show up simply because Typeel is a small independent app.
