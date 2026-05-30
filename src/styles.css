@@ -538,3 +538,30 @@ body {
 .outline-item.lvl-5 { padding-left: 58px; }
 .outline-item.lvl-6 { padding-left: 70px; }
 .outline-item.active { color: var(--accent); }
+
+/* ---------- pinned Welcome (sidebar) ---------- */
+.side-pinned {
+  padding: 4px 6px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.pinned-item {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+.pinned-item:hover {
+  background: var(--hover);
+}
+.pinned-item.active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}

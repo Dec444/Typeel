@@ -23,6 +23,7 @@ const editorEl = document.getElementById("editor") as HTMLElement;
 const titleEl = document.getElementById("doc-title") as HTMLElement;
 const dirtyDot = document.getElementById("dirty-dot") as HTMLElement;
 const outlineEl = document.getElementById("outline") as HTMLElement;
+const welcomeRow = document.getElementById("welcome-row") as HTMLElement;
 const wordcountBtn = document.getElementById("wordcount") as HTMLElement;
 const blocktypeEl = document.getElementById("blocktype") as HTMLElement;
 const themeBtn = document.getElementById("theme-btn") as HTMLElement;
@@ -139,6 +140,7 @@ async function loadFile(path: string): Promise<void> {
     currentPath = path;
     titleEl.textContent = basename(path);
     await mountEditor(content);
+    welcomeRow.classList.remove("active");
   } catch (e) {
     alert("Could not open file:\n" + e);
   }
@@ -178,6 +180,7 @@ async function newFile(): Promise<void> {
   currentPath = null;
   titleEl.textContent = "Untitled";
   await mountEditor("");
+  welcomeRow.classList.remove("active");
 }
 
 async function loadWelcome(): Promise<void> {
@@ -185,6 +188,7 @@ async function loadWelcome(): Promise<void> {
   currentPath = null;
   titleEl.textContent = "Welcome";
   await mountEditor(welcomeMd);
+  welcomeRow.classList.add("active");
 }
 
 // ---------- document outline (headings of the current file) ----------
@@ -370,6 +374,7 @@ function toggleDark(): void {
 document.getElementById("new-file")!.addEventListener("click", newFile);
 document.getElementById("open-file")!.addEventListener("click", openFileDialog);
 document.getElementById("save-file")!.addEventListener("click", saveFile);
+welcomeRow.addEventListener("click", loadWelcome);
 document.getElementById("toggle-theme")!.addEventListener("click", toggleDark);
 
 themeBtn.addEventListener("click", (e) => {
