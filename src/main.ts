@@ -16,13 +16,13 @@ let dirty = false;
 let countVisible = localStorage.getItem("typeel-wordcount") !== "off";
 let themeName = localStorage.getItem("typeel-theme-name") || "b";
 let darkMode = (localStorage.getItem("typeel-theme") || "light") === "dark";
+let outlineHeadings: HTMLElement[] = [];
+let outlineTimer: ReturnType<typeof setTimeout> | undefined;
 
 const editorEl = document.getElementById("editor") as HTMLElement;
 const titleEl = document.getElementById("doc-title") as HTMLElement;
 const dirtyDot = document.getElementById("dirty-dot") as HTMLElement;
-const treeEl = document.getElementById("file-tree") as HTMLElement;
-const folderTreeEl = document.getElementById("folder-tree") as HTMLElement;
-const welcomeRow = document.getElementById("welcome-row") as HTMLElement;
+const outlineEl = document.getElementById("outline") as HTMLElement;
 const wordcountBtn = document.getElementById("wordcount") as HTMLElement;
 const blocktypeEl = document.getElementById("blocktype") as HTMLElement;
 const themeBtn = document.getElementById("theme-btn") as HTMLElement;
@@ -53,6 +53,7 @@ async function mountEditor(content: string): Promise<void> {
   }
 
   updateWordCount();
+  updateOutline();
 }
 
 function onEdit(): void {
@@ -129,9 +130,6 @@ async function openFileDialog(): Promise<void> {
   });
   if (typeof selected !== "string") return;
   await loadFile(selected);
-  // Reveal the file's folder + siblings in the sidebar.
-  await showFolder(dirname(selected));
-  highlightActive(selected);
 }
 
 async function loadFile(path: string): Promise<void> {
@@ -141,7 +139,6 @@ async function loadFile(path: string): Promise<void> {
     currentPath = path;
     titleEl.textContent = basename(path);
     await mountEditor(content);
-    highlightActive(path);
   } catch (e) {
     alert("Could not open file:\n" + e);
   }
@@ -175,19 +172,12 @@ function basename(p: string): string {
   return p.split(/[\\/]/).pop() || p;
 }
 
-function dirname(p: string): string {
-  const idx = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
-  if (idx < 0) return p;
-  return p.slice(0, idx) || "/";
-}
-
 // ---------- new / welcome ----------
 async function newFile(): Promise<void> {
   if (dirty && !confirm("Discard unsaved changes?")) return;
   currentPath = null;
   titleEl.textContent = "Untitled";
   await mountEditor("");
-  clearActive();
 }
 
 async function loadWelcome(): Promise<void> {
@@ -195,103 +185,67 @@ async function loadWelcome(): Promise<void> {
   currentPath = null;
   titleEl.textContent = "Welcome";
   await mountEditor(welcomeMd);
-  clearActive();
-  welcomeRow.classList.add("active");
 }
 
-function clearActive(): void {
-  treeEl
-    .querySelectorAll<HTMLElement>(".tree-row.active")
-    .forEach((row) => row.classList.remove("active"));
-}
+// ---------- document outline (headings of the current file) ----------
+function updateOutline(): void {
+  const headings = Array.from(
+    editorEl.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6"),
+  );
+  outlineHeadings = headings;
+  outlineEl.innerHTML = "";
 
-// ---------- folder tree ----------
-interface Entry {
-  name: string;
-  path: string;
-  is_dir: boolean;
-}
-
-async function showFolder(dir: string): Promise<void> {
-  folderTreeEl.innerHTML = "";
-
-  // Show the project folder name as a collapsible root, so it stays
-  // visible while editing.
-  const root = document.createElement("div");
-  root.className = "tree-row folder folder-root";
-  const tree = await buildTree(dir);
-  let expanded = true;
-  const label = () => (expanded ? "\u25BE " : "\u25B8 ") + basename(dir);
-  root.textContent = label();
-  root.addEventListener("click", () => {
-    expanded = !expanded;
-    tree.style.display = expanded ? "" : "none";
-    root.textContent = label();
-  });
-
-  folderTreeEl.appendChild(root);
-  folderTreeEl.appendChild(tree);
-}
-
-async function openFolderDialog(): Promise<void> {
-  const dir = await open({ directory: true, multiple: false });
-  if (typeof dir !== "string") return;
-  await showFolder(dir);
-}
-
-async function buildTree(dirPath: string): Promise<HTMLElement> {
-  const ul = document.createElement("ul");
-  ul.className = "tree-list";
-
-  let entries: Entry[] = [];
-  try {
-    entries = await invoke<Entry[]>("list_dir", { path: dirPath });
-  } catch {
-    /* unreadable directory — show nothing */
+  if (headings.length === 0) {
+    const hint = document.createElement("p");
+    hint.className = "empty-hint";
+    hint.textContent = "No headings in this document yet.";
+    outlineEl.appendChild(hint);
+    return;
   }
 
-  for (const entry of entries) {
-    const li = document.createElement("li");
+  headings.forEach((h, i) => {
+    const level = Number(h.tagName.charAt(1));
+    const item = document.createElement("button");
+    item.className = "outline-item lvl-" + level;
+    item.textContent = h.textContent?.trim() || "Untitled heading";
+    item.addEventListener("click", () => {
+      const target = outlineHeadings[i];
+      if (target && target.isConnected) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+    outlineEl.appendChild(item);
+  });
 
-    if (entry.is_dir) {
-      const row = document.createElement("div");
-      row.className = "tree-row folder";
-      row.textContent = "\u25B8 " + entry.name; // ▸
-      let expanded = false;
-      let childUl: HTMLElement | null = null;
-      row.addEventListener("click", async () => {
-        if (expanded) {
-          childUl?.remove();
-          childUl = null;
-          expanded = false;
-          row.textContent = "\u25B8 " + entry.name;
-        } else {
-          childUl = await buildTree(entry.path);
-          li.appendChild(childUl);
-          expanded = true;
-          row.textContent = "\u25BE " + entry.name; // ▾
-        }
-      });
-      li.appendChild(row);
-    } else {
-      const row = document.createElement("div");
-      row.className = "tree-row file";
-      row.dataset.path = entry.path;
-      row.textContent = entry.name;
-      row.addEventListener("click", () => loadFile(entry.path));
-      li.appendChild(row);
+  highlightOutline();
+}
+
+// Debounced rebuild while typing.
+function scheduleOutline(): void {
+  clearTimeout(outlineTimer);
+  outlineTimer = setTimeout(updateOutline, 250);
+}
+
+// Mark the outline entry for the section the cursor is currently in.
+function highlightOutline(): void {
+  const items = outlineEl.querySelectorAll<HTMLElement>(".outline-item");
+  if (items.length === 0) return;
+
+  const sel = document.getSelection();
+  let activeIdx = -1;
+  const anchor = sel && sel.anchorNode;
+  if (anchor && editorEl.contains(anchor)) {
+    for (let i = 0; i < outlineHeadings.length; i++) {
+      const pos = outlineHeadings[i].compareDocumentPosition(anchor);
+      const headingIsBeforeCaret =
+        (pos & Node.DOCUMENT_POSITION_FOLLOWING) !== 0 ||
+        (pos & Node.DOCUMENT_POSITION_CONTAINED_BY) !== 0;
+      if (headingIsBeforeCaret) activeIdx = i;
+      else break;
     }
-
-    ul.appendChild(li);
   }
 
-  return ul;
-}
-
-function highlightActive(path: string): void {
-  treeEl.querySelectorAll<HTMLElement>(".tree-row.file").forEach((row) => {
-    row.classList.toggle("active", row.dataset.path === path);
-  });
+  items.forEach((it, i) => it.classList.toggle("active", i === activeIdx));
 }
 
 // ---------- export ----------
@@ -416,8 +370,6 @@ function toggleDark(): void {
 document.getElementById("new-file")!.addEventListener("click", newFile);
 document.getElementById("open-file")!.addEventListener("click", openFileDialog);
 document.getElementById("save-file")!.addEventListener("click", saveFile);
-document.getElementById("open-folder")!.addEventListener("click", openFolderDialog);
-welcomeRow.addEventListener("click", loadWelcome);
 document.getElementById("toggle-theme")!.addEventListener("click", toggleDark);
 
 themeBtn.addEventListener("click", (e) => {
@@ -452,9 +404,13 @@ editorEl.addEventListener("input", () => {
   onEdit();
   updateWordCount();
   updateBlockType();
+  scheduleOutline();
 }, true);
 
-document.addEventListener("selectionchange", updateBlockType);
+document.addEventListener("selectionchange", () => {
+  updateBlockType();
+  highlightOutline();
+});
 
 wordcountBtn.addEventListener("click", toggleWordCount);
 
