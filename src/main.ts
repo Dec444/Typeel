@@ -14,8 +14,8 @@ let currentPath: string | null = null;
 let savedMarkdown = "";
 let dirty = false;
 let countVisible = localStorage.getItem("typeel-wordcount") !== "off";
-let themeName = localStorage.getItem("typeel-theme-name") || "a";
-let darkMode = (localStorage.getItem("typeel-theme") || "dark") === "dark";
+let themeName = localStorage.getItem("typeel-theme-name") || "b";
+let darkMode = (localStorage.getItem("typeel-theme") || "light") === "dark";
 
 const editorEl = document.getElementById("editor") as HTMLElement;
 const titleEl = document.getElementById("doc-title") as HTMLElement;

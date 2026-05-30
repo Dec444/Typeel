@@ -22,14 +22,14 @@
 
 :root {
   --sidebar-w: 252px;
-  /* default appearance = Option A, light (overridden once a theme is set) */
-  --bg: #faefe9;
-  --chrome: #f2e4dd;
-  --border: #e6d2c8;
-  --table-border: #dcc6bb;
+  /* default appearance = Option B (Cream & Slate), light — Onion White bg */
+  --bg: #e2d5c2;
+  --chrome: #d8c9b3;
+  --border: #c9b79e;
+  --table-border: #c0ac90;
   --text: #4a2c3f;
-  --text-soft: #8a6675;
-  --accent: #7a5063;
+  --text-soft: #6e5648;
+  --accent: #486d83;
   --hover: rgba(74, 44, 63, 0.07);
   color-scheme: light;
 }

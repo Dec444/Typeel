@@ -61,6 +61,19 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # ---- macOS code signing + notarization (optional) ----
+          # These read from repo secrets. While the secrets are unset they
+          # resolve to empty strings and the build proceeds UNSIGNED, exactly
+          # as today. Add the secrets (Settings -> Secrets and variables ->
+          # Actions) after joining the Apple Developer Program and macOS
+          # builds will be signed + notarized automatically — no further
+          # changes to this file. (These vars are ignored on Windows/Linux.)
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Typeel ${{ github.ref_name }}'
