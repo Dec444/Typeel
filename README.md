@@ -27,17 +27,8 @@ download the file for your computer:
 
 Then install it:
 
-- **macOS** — open the `.dmg` and drag **Typeel** into your Applications folder.
-  Because Typeel isn't signed by Apple yet, macOS may say it's *"damaged and can't be
-  opened"* — it isn't; that's just macOS blocking an unsigned download. To clear it, open
-  **Terminal** (⌘-Space, type "Terminal") and run this once:
-
-  ```bash
-  xattr -dr com.apple.quarantine /Applications/Typeel.app
-  ```
-
-  Then open Typeel normally. (The command only removes the "downloaded from the internet"
-  flag — it doesn't change the app.)
+- **macOS** — open the `.dmg`, drag **Typeel** into your Applications folder, and open it.
+  Typeel is signed and notarized by Apple, so it launches normally with no security warning.
 
 - **Windows** — run the installer. If a blue "Windows protected your PC" box appears, click
   **More info**, then **Run anyway**. Once only.
