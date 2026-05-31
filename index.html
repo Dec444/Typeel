@@ -13,9 +13,11 @@
             <span class="logo"><svg class="logo-mark" viewBox="0 0 96 96" width="22" height="22" aria-hidden="true"><path d="M64 24 A30 30 0 1 0 64 72" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><path d="M58 34 A18 18 0 1 0 58 62" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><rect x="43" y="38" width="6" height="20" rx="3" style="fill:var(--accent)"/></svg>Typeel</span>
             <span class="tagline">Peel your thoughts.</span>
           </div>
+          <button id="sidebar-toggle" class="icon-btn" title="Hide sidebar">&#10094;</button>
         </div>
         <div class="side-pinned">
           <button id="welcome-row" class="pinned-item">Welcome</button>
+          <button id="return-row" class="pinned-item hidden"></button>
         </div>
         <div class="outline-head">Outline</div>
         <div id="outline" class="outline">
@@ -25,6 +27,7 @@
 
       <main id="main">
         <header id="toolbar">
+          <button id="sidebar-show" class="tbtn" title="Show sidebar">&#10095;</button>
           <span id="doc-title">Untitled</span>
           <span id="dirty-dot" class="dirty-dot hidden" title="Unsaved changes">&#9679;</span>
           <div class="spacer"></div>
@@ -38,6 +41,14 @@
               <button class="drop-item" data-fmt="html">HTML file</button>
             </div>
           </div>
+          <div class="menu-wrap">
+            <button id="font-btn" class="tbtn" title="Editor font">Font</button>
+            <div id="font-menu" class="drop-menu hidden">
+              <button class="drop-item" data-font="source">Source Sans 3</button>
+              <button class="drop-item" data-font="sulphur">Sulphur Point</button>
+              <button class="drop-item" data-font="ysabeau">Ysabeau Infant</button>
+            </div>
+          </div>
           <div class="theme-wrap">
             <button id="theme-btn" class="tbtn" title="Choose theme">Theme</button>
             <div id="theme-menu" class="theme-menu hidden">
@@ -45,13 +56,13 @@
                 <span class="sw"><i style="background:#ffffff"></i><i style="background:#0f0f10"></i><i style="background:#8a8a8e"></i></span>
                 <span class="to-text"><b>Black &amp; White</b><small>White / Black · neutral grey</small></span>
               </button>
-              <button class="theme-opt" data-name="a">
-                <span class="sw"><i style="background:#faefe9"></i><i style="background:#4a2c3f"></i><i style="background:#f4a384"></i></span>
-                <span class="to-text"><b>Plum &amp; Peach</b><small>Baby Blossom · Obsidian Plum · Creamy Peach</small></span>
-              </button>
               <button class="theme-opt" data-name="b">
-                <span class="sw"><i style="background:#e2d5c2"></i><i style="background:#2e4453"></i><i style="background:#486d83"></i></span>
-                <span class="to-text"><b>Cream &amp; Slate</b><small>Onion White · Slate · Blue Loneliness</small></span>
+                <span class="sw"><i style="background:#f3e6d3"></i><i style="background:#5e647c"></i><i style="background:#5e647c"></i></span>
+                <span class="to-text"><b>Cream &amp; Slate</b><small>Creamy · Slate Blue</small></span>
+              </button>
+              <button class="theme-opt" data-name="c">
+                <span class="sw"><i style="background:#f8f4e3"></i><i style="background:#d8a7b1"></i><i style="background:#845a66"></i></span>
+                <span class="to-text"><b>Ivory &amp; Rose</b><small>Ivory · Dusty Rose</small></span>
               </button>
             </div>
           </div>

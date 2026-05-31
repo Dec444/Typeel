@@ -22,63 +22,64 @@
 
 :root {
   --sidebar-w: 252px;
-  /* default appearance = Option B (Cream & Slate), light — Onion White bg */
-  --bg: #e2d5c2;
-  --chrome: #d8c9b3;
-  --border: #c9b79e;
-  --table-border: #c0ac90;
-  --text: #4a2c3f;
-  --text-soft: #6e5648;
-  --accent: #486d83;
-  --hover: rgba(74, 44, 63, 0.07);
-  color-scheme: light;
-}
-
-/* ===== Option B — Cream & Slate (default) ===== */
-[data-theme="b"] {
-  --bg: #e2d5c2;          /* Onion White */
-  --chrome: #d8c9b3;
-  --border: #c9b79e;
-  --table-border: #c0ac90;
-  --text: #4a2c3f;        /* Obsidian Plum */
-  --text-soft: #6e5648;
-  --accent: #486d83;      /* Blue Loneliness */
-  --hover: rgba(74, 44, 63, 0.07);
-  color-scheme: light;
-}
-[data-theme="b"].dark {
-  --bg: #2e4453;          /* Slate (deepened Blue Loneliness) */
-  --chrome: #273b48;
-  --border: #3d5a6b;
-  --table-border: #45647a;
-  --text: #f1eae2;        /* Baby Blossom */
-  --text-soft: #9fb3bf;
-  --accent: #f4a384;      /* Creamy Peach */
-  --hover: rgba(255, 255, 255, 0.07);
+  --editor-font: "Source Sans 3", ui-sans-serif, sans-serif;
+  /* default appearance = Cream & Slate, dark (slate background) */
+  --bg: #5e647c;
+  --chrome: #545a70;
+  --border: #6f7589;
+  --table-border: #797f93;
+  --text: #f3e6d3;
+  --text-soft: #cdc7b8;
+  --accent: #f3e6d3;
+  --hover: rgba(243, 230, 211, 0.1);
   color-scheme: dark;
 }
 
-/* ===== Option A — Plum & Peach ===== */
-[data-theme="a"] {
-  --bg: #faefe9;          /* Baby Blossom */
-  --chrome: #f2e4dd;
-  --border: #e6d2c8;
-  --table-border: #dcc6bb;
-  --text: #4a2c3f;        /* Obsidian Plum */
-  --text-soft: #8a6675;
-  --accent: #7a5063;      /* Grey Carmine */
-  --hover: rgba(74, 44, 63, 0.07);
+/* ===== Cream & Slate (default) — from the uploaded palette ===== */
+[data-theme="b"] {
+  --bg: #f3e6d3;          /* Creamy */
+  --chrome: #ebddc9;
+  --border: #ddcdb4;
+  --table-border: #d0bfa2;
+  --text: #5e647c;        /* Slate Blue */
+  --text-soft: #8a8ea0;
+  --accent: #5e647c;
+  --hover: rgba(94, 100, 124, 0.1);
   color-scheme: light;
 }
-[data-theme="a"].dark {
-  --bg: #4a2c3f;          /* Obsidian Plum */
-  --chrome: #3c2333;
-  --border: #5e3b4d;
-  --table-border: #6a4356;
-  --text: #faefe9;        /* Baby Blossom */
-  --text-soft: #c9a9b5;
-  --accent: #f4a384;      /* Creamy Peach */
-  --hover: rgba(250, 239, 233, 0.08);
+[data-theme="b"].dark {
+  --bg: #5e647c;          /* Slate Blue */
+  --chrome: #545a70;
+  --border: #6f7589;
+  --table-border: #797f93;
+  --text: #f3e6d3;        /* Creamy */
+  --text-soft: #cdc7b8;
+  --accent: #f3e6d3;
+  --hover: rgba(243, 230, 211, 0.1);
+  color-scheme: dark;
+}
+
+/* ===== Ivory & Pink — from the uploaded palette ===== */
+[data-theme="c"] {
+  --bg: #f8f4e3;          /* Ivory */
+  --chrome: #f1ebd9;
+  --border: #e7ddca;
+  --table-border: #ddd1bc;
+  --text: #5a3d45;        /* deep mauve (readable on ivory) */
+  --text-soft: #8d6f77;
+  --accent: #d8a7b1;      /* Dusty Rose */
+  --hover: rgba(216, 167, 177, 0.16);
+  color-scheme: light;
+}
+[data-theme="c"].dark {
+  --bg: #845a66;          /* mauve rose */
+  --chrome: #774e5a;
+  --border: #9a6c78;
+  --table-border: #a3737f;
+  --text: #f8f4e3;        /* Ivory */
+  --text-soft: #e6cdd3;
+  --accent: #d8a7b1;      /* Dusty Rose */
+  --hover: rgba(248, 244, 227, 0.1);
   color-scheme: dark;
 }
 
@@ -307,12 +308,12 @@ body {
 }
 
 .crepe .milkdown {
-  max-width: 760px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 44px 24px 30vh;
-  font-family: "Source Sans 3", ui-sans-serif, sans-serif;
-  --crepe-font-title: "Source Sans 3", ui-sans-serif, sans-serif;
-  --crepe-font-default: "Source Sans 3", ui-sans-serif, sans-serif;
+  padding: 44px 32px 30vh;
+  font-family: var(--editor-font);
+  --crepe-font-title: var(--editor-font);
+  --crepe-font-default: var(--editor-font);
   /* Map Crepe's tokens onto the active theme variables, so every theme
      and light/dark mode flows through automatically. */
   --crepe-color-background: var(--bg);
@@ -564,4 +565,52 @@ body {
 .pinned-item.active {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   color: var(--accent);
+}
+
+/* ---------- bundled fonts: editor font options ---------- */
+@font-face {
+  font-family: "Sulphur Point";
+  src: url("./assets/fonts/SulphurPoint-Regular.ttf") format("truetype");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Sulphur Point";
+  src: url("./assets/fonts/SulphurPoint-Bold.ttf") format("truetype");
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Ysabeau Infant";
+  src: url("./assets/fonts/YsabeauInfant.ttf") format("truetype");
+  font-weight: 100 900; font-style: normal; font-display: swap;
+}
+
+/* ---------- sidebar collapse toggle ---------- */
+.side-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+#sidebar-toggle {
+  flex: 0 0 auto;
+}
+#app.sidebar-collapsed #sidebar {
+  display: none;
+}
+#sidebar-show {
+  display: none;
+  padding: 4px 9px;
+}
+#app.sidebar-collapsed #sidebar-show {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* return-to-document pinned row + active font option */
+.pinned-item.hidden {
+  display: none;
+}
+.drop-item.active {
+  color: var(--accent);
+  font-weight: 600;
 }

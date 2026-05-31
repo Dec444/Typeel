@@ -5,7 +5,7 @@ import "./styles.css";
 
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { marked } from "marked";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import welcomeMd from "./welcome.md?raw";
 
 // ---------- state ----------
@@ -15,9 +15,15 @@ let savedMarkdown = "";
 let dirty = false;
 let countVisible = localStorage.getItem("typeel-wordcount") !== "off";
 let themeName = localStorage.getItem("typeel-theme-name") || "b";
-let darkMode = (localStorage.getItem("typeel-theme") || "light") === "dark";
+let darkMode = (localStorage.getItem("typeel-theme") || "dark") === "dark";
 let outlineHeadings: HTMLElement[] = [];
 let outlineTimer: ReturnType<typeof setTimeout> | undefined;
+let sidebarCollapsed = localStorage.getItem("typeel-sidebar") === "hidden";
+let editorFont = localStorage.getItem("typeel-font") || "source";
+// While viewing the pinned Welcome doc, we stash the working document here so
+// the user can return to it (including unsaved, untitled content) — see #2.
+let stashed: { content: string; path: string | null; title: string; dirty: boolean } | null = null;
+let viewingWelcome = false;
 
 const editorEl = document.getElementById("editor") as HTMLElement;
 const titleEl = document.getElementById("doc-title") as HTMLElement;
@@ -30,6 +36,12 @@ const themeBtn = document.getElementById("theme-btn") as HTMLElement;
 const themeMenu = document.getElementById("theme-menu") as HTMLElement;
 const exportBtn = document.getElementById("export-btn") as HTMLElement;
 const exportMenu = document.getElementById("export-menu") as HTMLElement;
+const appEl = document.getElementById("app") as HTMLElement;
+const sidebarToggle = document.getElementById("sidebar-toggle") as HTMLElement;
+const sidebarShow = document.getElementById("sidebar-show") as HTMLElement;
+const returnRow = document.getElementById("return-row") as HTMLElement;
+const fontBtn = document.getElementById("font-btn") as HTMLElement;
+const fontMenu = document.getElementById("font-menu") as HTMLElement;
 
 // ---------- editor lifecycle ----------
 async function mountEditor(content: string): Promise<void> {
@@ -124,6 +136,63 @@ function updateBlockType(): void {
 }
 
 // ---------- file operations ----------
+// Local images in a Markdown file are written relative to that file's folder,
+// but the editor runs from the app's own origin, so those paths resolve to
+// nothing. On load we rewrite local image paths to Tauri asset URLs (which the
+// webview can read), remembering the originals so we can write them back as-is
+// on save. Remote (http/data/…) images are left untouched.
+let imageMap = new Map<string, string>(); // assetUrl -> original src as written
+
+function dirOf(p: string): string {
+  const i = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
+  return i >= 0 ? p.slice(0, i) : "";
+}
+
+function isExternalSrc(src: string): boolean {
+  return (
+    /^(https?:|data:|asset:|blob:|tauri:|file:|#)/i.test(src) ||
+    src.startsWith("//") ||
+    src.includes("asset.localhost")
+  );
+}
+
+function isAbsoluteSrc(src: string): boolean {
+  return /^([A-Za-z]:[\\/]|\/)/.test(src);
+}
+
+function resolvePath(dir: string, rel: string): string {
+  const sep = dir.includes("\\") ? "\\" : "/";
+  const parts = dir ? dir.split(/[\\/]/) : [];
+  for (const seg of rel.split(/[\\/]/)) {
+    if (seg === "" || seg === ".") continue;
+    if (seg === "..") parts.pop();
+    else parts.push(seg);
+  }
+  return parts.join(sep);
+}
+
+const IMG_MD = /(!\[[^\]]*\]\()([^)\s]+)((?:\s+"[^"]*")?\))/g;
+const IMG_HTML = /(<img\b[^>]*?\bsrc=["'])([^"']+)(["'])/gi;
+
+function localizeImages(md: string, fileDir: string): string {
+  imageMap = new Map();
+  const conv = (src: string): string => {
+    if (isExternalSrc(src)) return src;
+    const abs = isAbsoluteSrc(src) ? src : resolvePath(fileDir, src);
+    const url = convertFileSrc(abs);
+    imageMap.set(url, src);
+    return url;
+  };
+  return md
+    .replace(IMG_MD, (_m, a, src, b) => a + conv(src) + b)
+    .replace(IMG_HTML, (_m, a, src, b) => a + conv(src) + b);
+}
+
+function delocalizeImages(md: string): string {
+  for (const [url, orig] of imageMap) md = md.split(url).join(orig);
+  return md;
+}
+
 async function openFileDialog(): Promise<void> {
   const selected = await open({
     multiple: false,
@@ -139,15 +208,17 @@ async function loadFile(path: string): Promise<void> {
     const content = await invoke<string>("read_file", { path });
     currentPath = path;
     titleEl.textContent = basename(path);
-    await mountEditor(content);
+    await mountEditor(localizeImages(content, dirOf(path)));
     welcomeRow.classList.remove("active");
+    clearStash();
   } catch (e) {
     alert("Could not open file:\n" + e);
   }
 }
 
 async function saveFile(): Promise<void> {
-  const content = getContent();
+  const editorContent = getContent();
+  const fileContent = delocalizeImages(editorContent);
   let path = currentPath;
 
   if (!path) {
@@ -162,8 +233,8 @@ async function saveFile(): Promise<void> {
   }
 
   try {
-    await invoke("write_file", { path, contents: content });
-    savedMarkdown = content;
+    await invoke("write_file", { path, contents: fileContent });
+    savedMarkdown = editorContent;
     setDirty(false);
   } catch (e) {
     alert("Could not save file:\n" + e);
@@ -175,20 +246,51 @@ function basename(p: string): string {
 }
 
 // ---------- new / welcome ----------
+function clearStash(): void {
+  stashed = null;
+  viewingWelcome = false;
+  returnRow.classList.add("hidden");
+}
+
 async function newFile(): Promise<void> {
   if (dirty && !confirm("Discard unsaved changes?")) return;
   currentPath = null;
   titleEl.textContent = "Untitled";
   await mountEditor("");
   welcomeRow.classList.remove("active");
+  clearStash();
 }
 
+// Open the pinned Welcome doc for reference WITHOUT losing the working file:
+// the current document is stashed and a "return" row appears in the sidebar.
 async function loadWelcome(): Promise<void> {
-  if (dirty && !confirm("Discard unsaved changes?")) return;
+  if (viewingWelcome) return;
+  stashed = {
+    content: getContent(),
+    path: currentPath,
+    title: titleEl.textContent || "Untitled",
+    dirty,
+  };
+  returnRow.textContent = "\u2190 " + stashed.title;
+  returnRow.classList.remove("hidden");
+  viewingWelcome = true;
+
   currentPath = null;
   titleEl.textContent = "Welcome";
   await mountEditor(welcomeMd);
   welcomeRow.classList.add("active");
+}
+
+// Restore the document that was open before the user clicked Welcome.
+async function returnToStashed(): Promise<void> {
+  if (!stashed) return;
+  const s = stashed;
+  currentPath = s.path;
+  titleEl.textContent = s.title;
+  await mountEditor(s.content); // mountEditor resets dirty to false…
+  if (s.dirty) setDirty(true); // …so re-apply the unsaved marker if needed
+  welcomeRow.classList.remove("active");
+  clearStash();
 }
 
 // ---------- document outline (headings of the current file) ----------
@@ -350,6 +452,7 @@ async function exportPdf(): Promise<void> {
 
 // ---------- theme ----------
 function applyTheme(): void {
+  if (themeName !== "bw" && themeName !== "b" && themeName !== "c") themeName = "b";
   const root = document.documentElement;
   root.dataset.theme = themeName;
   root.classList.toggle("dark", darkMode);
@@ -370,12 +473,50 @@ function toggleDark(): void {
   applyTheme();
 }
 
+// ---------- sidebar collapse ----------
+function setSidebar(collapsed: boolean): void {
+  sidebarCollapsed = collapsed;
+  appEl.classList.toggle("sidebar-collapsed", collapsed);
+  localStorage.setItem("typeel-sidebar", collapsed ? "hidden" : "shown");
+}
+
+// ---------- editor font ----------
+const FONT_STACK: Record<string, string> = {
+  source: '"Source Sans 3", ui-sans-serif, sans-serif',
+  sulphur: '"Sulphur Point", ui-sans-serif, sans-serif',
+  ysabeau: '"Ysabeau Infant", ui-sans-serif, sans-serif',
+};
+
+function applyFont(key: string): void {
+  if (!FONT_STACK[key]) key = "source";
+  editorFont = key;
+  document.documentElement.style.setProperty("--editor-font", FONT_STACK[key]);
+  localStorage.setItem("typeel-font", key);
+  fontMenu.querySelectorAll<HTMLElement>(".drop-item").forEach((o) =>
+    o.classList.toggle("active", o.dataset.font === key),
+  );
+}
+
 // ---------- wiring ----------
 document.getElementById("new-file")!.addEventListener("click", newFile);
 document.getElementById("open-file")!.addEventListener("click", openFileDialog);
 document.getElementById("save-file")!.addEventListener("click", saveFile);
 welcomeRow.addEventListener("click", loadWelcome);
+returnRow.addEventListener("click", returnToStashed);
+sidebarToggle.addEventListener("click", () => setSidebar(true));
+sidebarShow.addEventListener("click", () => setSidebar(false));
 document.getElementById("toggle-theme")!.addEventListener("click", toggleDark);
+
+fontBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  fontMenu.classList.toggle("hidden");
+});
+fontMenu.querySelectorAll<HTMLElement>(".drop-item").forEach((item) => {
+  item.addEventListener("click", () => {
+    applyFont(item.dataset.font || "source");
+    fontMenu.classList.add("hidden");
+  });
+});
 
 themeBtn.addEventListener("click", (e) => {
   e.stopPropagation();
@@ -402,6 +543,7 @@ document.addEventListener("click", (e) => {
   const t = e.target as Node;
   if (e.target !== themeBtn && !themeMenu.contains(t)) themeMenu.classList.add("hidden");
   if (e.target !== exportBtn && !exportMenu.contains(t)) exportMenu.classList.add("hidden");
+  if (e.target !== fontBtn && !fontMenu.contains(t)) fontMenu.classList.add("hidden");
 });
 
 // reliable dirty signal: any input inside the editor surface
@@ -441,4 +583,14 @@ window.addEventListener("beforeunload", (e) => {
 });
 
 applyTheme();
-loadWelcome();
+setSidebar(sidebarCollapsed);
+applyFont(editorFont);
+// Show Welcome as the initial document — it's the base doc, so there is nothing
+// to stash or return to yet (that only happens once a working file is open).
+void (async () => {
+  currentPath = null;
+  titleEl.textContent = "Welcome";
+  await mountEditor(welcomeMd);
+  welcomeRow.classList.add("active");
+  viewingWelcome = true;
+})();
