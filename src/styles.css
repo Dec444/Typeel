@@ -23,63 +23,63 @@
 :root {
   --sidebar-w: 252px;
   --editor-font: "Source Sans 3", ui-sans-serif, sans-serif;
-  /* default appearance = Cream & Slate, dark (slate background) */
+  /* default appearance = Fluffy & Dust, dark (Dust background) */
   --bg: #5e647c;
   --chrome: #545a70;
   --border: #6f7589;
   --table-border: #797f93;
-  --text: #f3e6d3;
-  --text-soft: #cdc7b8;
-  --accent: #f3e6d3;
-  --hover: rgba(243, 230, 211, 0.1);
+  --text: #fdfcf7;
+  --text-soft: #d8d5cc;
+  --accent: #fdfcf7;
+  --hover: rgba(253, 252, 247, 0.1);
   color-scheme: dark;
 }
 
-/* ===== Cream & Slate (default) — from the uploaded palette ===== */
+/* ===== Fluffy & Dust (default) ===== */
 [data-theme="b"] {
-  --bg: #f3e6d3;          /* Creamy */
-  --chrome: #ebddc9;
-  --border: #ddcdb4;
-  --table-border: #d0bfa2;
-  --text: #5e647c;        /* Slate Blue */
+  --bg: #fdfcf7;          /* Fluffy */
+  --chrome: #f2efe6;
+  --border: #e7e3d7;
+  --table-border: #dbd6c7;
+  --text: #5e647c;        /* Dust */
   --text-soft: #8a8ea0;
   --accent: #5e647c;
   --hover: rgba(94, 100, 124, 0.1);
   color-scheme: light;
 }
 [data-theme="b"].dark {
-  --bg: #5e647c;          /* Slate Blue */
+  --bg: #5e647c;          /* Dust */
   --chrome: #545a70;
   --border: #6f7589;
   --table-border: #797f93;
-  --text: #f3e6d3;        /* Creamy */
-  --text-soft: #cdc7b8;
-  --accent: #f3e6d3;
-  --hover: rgba(243, 230, 211, 0.1);
+  --text: #fdfcf7;        /* Fluffy */
+  --text-soft: #d8d5cc;
+  --accent: #fdfcf7;
+  --hover: rgba(253, 252, 247, 0.1);
   color-scheme: dark;
 }
 
-/* ===== Ivory & Pink — from the uploaded palette ===== */
+/* ===== Blossom & Rose ===== */
 [data-theme="c"] {
-  --bg: #f8f4e3;          /* Ivory */
-  --chrome: #f1ebd9;
-  --border: #e7ddca;
-  --table-border: #ddd1bc;
-  --text: #5a3d45;        /* deep mauve (readable on ivory) */
-  --text-soft: #8d6f77;
-  --accent: #d8a7b1;      /* Dusty Rose */
-  --hover: rgba(216, 167, 177, 0.16);
+  --bg: #faefe9;          /* Blossom */
+  --chrome: #f3e2db;
+  --border: #ecd8d0;
+  --table-border: #e3cabf;
+  --text: #906b7b;        /* Rose */
+  --text-soft: #a98e98;
+  --accent: #906b7b;
+  --hover: rgba(144, 107, 123, 0.12);
   color-scheme: light;
 }
 [data-theme="c"].dark {
-  --bg: #845a66;          /* mauve rose */
-  --chrome: #774e5a;
-  --border: #9a6c78;
-  --table-border: #a3737f;
-  --text: #f8f4e3;        /* Ivory */
-  --text-soft: #e6cdd3;
-  --accent: #d8a7b1;      /* Dusty Rose */
-  --hover: rgba(248, 244, 227, 0.1);
+  --bg: #906b7b;          /* Rose */
+  --chrome: #7f5d6c;
+  --border: #a07e8c;
+  --table-border: #aa8896;
+  --text: #faefe9;        /* Blossom */
+  --text-soft: #e6d4d0;
+  --accent: #faefe9;
+  --hover: rgba(250, 239, 233, 0.1);
   color-scheme: dark;
 }
 

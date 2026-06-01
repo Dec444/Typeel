@@ -14,15 +14,15 @@ _Nothing yet._
 ### Added
 
 - **Font picker** in the toolbar — write in Source Sans 3, Sulphur Point, or Ysabeau Infant. Your choice is remembered.
-- **Ivory & Rose theme** — a warm ivory palette with dusty-rose accents.
+- **Blossom & Rose theme** — a warm peach palette with dusty-rose accents.
 - **Collapsible sidebar** — hide it with the ❮ button for a wider writing space, and bring it back with the ❯ button at the left of the toolbar. The state is remembered between sessions.
 - **Pinned Welcome** entry in the sidebar for quick access to the built-in guide.
 - **Images saved alongside your document.** Pasted or inserted images are written to an `assets` folder next to the file and referenced by path, so they persist and display when you reopen.
 
 ### Changed
 
-- Typeel now **opens in Cream & Slate (dark)** by default.
-- **Cream & Slate** was recolored to a softer cream/slate palette.
+- Typeel now **opens in Fluffy & Dust (dark)** by default.
+- **Fluffy & Dust** was recolored to a softer ivory/slate palette.
 - **Wider text column**, reducing the empty side margins on large or stretched windows.
 
 ### Removed
