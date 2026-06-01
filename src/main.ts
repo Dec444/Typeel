@@ -199,15 +199,118 @@ async function localizeImages(md: string, fileDir: string): Promise<string> {
     }
   }
 
-  const sub = (src: string): string => local.get(src) || src;
+  const sub = (src: string): string => {
+    const inlined = local.get(src);
+    if (inlined) return inlined; // local file -> fresh data URL
+    // Repair a base64 data URL that an earlier buggy save percent-encoded.
+    if (/^data:[^,]*;base64,/i.test(src) && src.includes("%")) {
+      try {
+        return src.replace(
+          /^(data:[^,]*,)([\s\S]*)$/i,
+          (_m, head, body) => head + decodeURIComponent(body).replace(/\s+/g, ""),
+        );
+      } catch {
+        return src;
+      }
+    }
+    return src;
+  };
   return md
     .replace(IMG_MD, (_m, a, src, b) => a + sub(src) + b)
     .replace(IMG_HTML, (_m, a, src, b) => a + sub(src) + b);
 }
 
+// Turn our inlined data URLs back into the original on-disk paths before saving.
+// The editor may re-encode the data URL when it serializes back to Markdown
+// (e.g. percent-encoding "+" "/" "=" or stripping whitespace), so we match both
+// the exact string and a normalized form rather than relying on an exact hit.
+function normalizeDataUrl(s: string): string {
+  let out = s;
+  try {
+    out = decodeURIComponent(s);
+  } catch {
+    /* leave as-is if it isn't valid percent-encoding */
+  }
+  return out.replace(/\s+/g, "");
+}
+
 function delocalizeImages(md: string): string {
-  for (const [url, orig] of imageMap) md = md.split(url).join(orig);
-  return md;
+  if (imageMap.size === 0) return md;
+
+  // Fast path: any data URLs left verbatim.
+  for (const [url, orig] of imageMap) {
+    if (md.includes(url)) md = md.split(url).join(orig);
+  }
+
+  // Robust path: match data URLs the editor rewrote.
+  const byNorm = new Map<string, string>();
+  for (const [url, orig] of imageMap) byNorm.set(normalizeDataUrl(url), orig);
+
+  const back = (full: string, pre: string, src: string, post: string): string => {
+    if (!/^data:/i.test(src)) return full;
+    const orig = imageMap.get(src) ?? byNorm.get(normalizeDataUrl(src));
+    return orig ? pre + orig + post : full;
+  };
+
+  return md
+    .replace(IMG_MD, (m, a, src, b) => back(m, a, src, b))
+    .replace(IMG_HTML, (m, a, src, b) => back(m, a, src, b));
+}
+
+// Persist pasted/embedded images (blob:/data: that weren't inlined from an
+// existing file) into an "assets" folder next to the document — the way a
+// desktop editor does — so they survive saving and reopening. Each embedded src
+// is mapped to its new relative path in imageMap, and delocalizeImages then
+// writes that path into the file.
+const MIME_EXT: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/gif": "gif",
+  "image/webp": "webp",
+  "image/svg+xml": "svg",
+  "image/bmp": "bmp",
+  "image/avif": "avif",
+};
+
+function collectImageSrcs(md: string): string[] {
+  const out: string[] = [];
+  for (const re of [IMG_MD, IMG_HTML]) {
+    re.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(md))) out.push(m[2]);
+  }
+  return out;
+}
+
+async function fetchAsBase64(src: string): Promise<{ b64: string; ext: string }> {
+  const blob = await (await fetch(src)).blob();
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let bin = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return { b64: btoa(bin), ext: MIME_EXT[blob.type] || "png" };
+}
+
+async function persistEmbeddedImages(md: string): Promise<void> {
+  if (!currentPath) return; // need a document location to place the assets folder
+  const sep = currentPath.includes("\\") ? "\\" : "/";
+  const assetsDir = dirOf(currentPath) + sep + "assets";
+
+  const embedded = [...new Set(collectImageSrcs(md))].filter(
+    (s) => /^(blob:|data:)/i.test(s) && !imageMap.has(s),
+  );
+  for (const src of embedded) {
+    try {
+      const { b64, ext } = await fetchAsBase64(src);
+      const fname = await invoke<string>("save_image", { dir: assetsDir, data: b64, ext });
+      imageMap.set(src, "assets/" + fname);
+    } catch {
+      /* leave it inline if it can't be written */
+    }
+  }
 }
 
 async function openFileDialog(): Promise<void> {
@@ -235,8 +338,6 @@ async function loadFile(path: string): Promise<void> {
 }
 
 async function saveFile(): Promise<void> {
-  const editorContent = getContent();
-  const fileContent = delocalizeImages(editorContent);
   let path = currentPath;
 
   if (!path) {
@@ -249,6 +350,10 @@ async function saveFile(): Promise<void> {
     currentPath = path;
     titleEl.textContent = basename(path);
   }
+
+  const editorContent = getContent();
+  await persistEmbeddedImages(editorContent);
+  const fileContent = delocalizeImages(editorContent);
 
   try {
     await invoke("write_file", { path, contents: fileContent });

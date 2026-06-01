@@ -17,6 +17,7 @@ _Nothing yet._
 - **Ivory & Rose theme** — a warm ivory palette with dusty-rose accents.
 - **Collapsible sidebar** — hide it with the ❮ button for a wider writing space, and bring it back with the ❯ button at the left of the toolbar. The state is remembered between sessions.
 - **Pinned Welcome** entry in the sidebar for quick access to the built-in guide.
+- **Images saved alongside your document.** Pasted or inserted images are written to an `assets` folder next to the file and referenced by path, so they persist and display when you reopen.
 
 ### Changed
 

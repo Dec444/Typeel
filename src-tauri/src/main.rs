@@ -147,6 +147,61 @@ fn base64_encode(data: &[u8]) -> String {
     out
 }
 
+/// Minimal, dependency-free base64 decoder (standard alphabet).
+fn base64_decode(s: &str) -> Vec<u8> {
+    fn val(c: u8) -> Option<u32> {
+        match c {
+            b'A'..=b'Z' => Some((c - b'A') as u32),
+            b'a'..=b'z' => Some((c - b'a' + 26) as u32),
+            b'0'..=b'9' => Some((c - b'0' + 52) as u32),
+            b'+' => Some(62),
+            b'/' => Some(63),
+            _ => None,
+        }
+    }
+    let mut out = Vec::with_capacity(s.len() / 4 * 3);
+    let mut acc = 0u32;
+    let mut nbits = 0u32;
+    for &c in s.as_bytes() {
+        let v = match val(c) {
+            Some(v) => v,
+            None => continue, // skip '=', whitespace, etc.
+        };
+        acc = (acc << 6) | v;
+        nbits += 6;
+        if nbits >= 8 {
+            nbits -= 8;
+            out.push(((acc >> nbits) & 0xFF) as u8);
+        }
+    }
+    out
+}
+
+/// Save a pasted/embedded image (base64 bytes) into a folder next to the
+/// document and return the filename written. Used to persist images the way a
+/// desktop editor does, instead of leaving them inline in the Markdown.
+#[tauri::command]
+fn save_image(dir: String, data: String, ext: String) -> Result<String, String> {
+    let bytes = base64_decode(&data);
+    if bytes.is_empty() {
+        return Err("empty image data".into());
+    }
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let safe_ext: String = ext.chars().filter(|c| c.is_ascii_alphanumeric()).collect();
+    let safe_ext = if safe_ext.is_empty() { "png".into() } else { safe_ext };
+    let fname = format!("image-{}.{}", stamp, safe_ext);
+
+    let mut p = std::path::PathBuf::from(&dir);
+    p.push(&fname);
+    fs::write(&p, bytes).map_err(|e| e.to_string())?;
+    Ok(fname)
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -155,7 +210,8 @@ fn main() {
             write_file,
             list_dir,
             open_html_in_browser,
-            read_image_data_url
+            read_image_data_url,
+            save_image
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
