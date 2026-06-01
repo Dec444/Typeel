@@ -384,6 +384,17 @@ body {
 .tab-add:hover {
   color: var(--text);
 }
+.tab-rename {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0 4px;
+  outline: none;
+}
 
 /* ---------- editor surface ---------- */
 #editor.crepe {

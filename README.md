@@ -118,8 +118,8 @@ block.
 ## Tabs & windows
 
 - **Tabs** — open as many documents as you like in one window. New and opened files become tabs;
-  `Ctrl/Cmd + T` opens a tab and `Ctrl/Cmd + W` closes the current one. Click a tab to switch, or
-  drag a tab sideways to reorder it.
+  `Ctrl/Cmd + T` opens a tab and `Ctrl/Cmd + W` closes the current one. Click a tab to switch,
+  drag a tab sideways to reorder it, or right-click (or double-click) a tab to rename it.
   The tab strip stays hidden while only one document is open, and each tab tracks its own unsaved
   changes.
 - **New window** — the ⧉ button next to **New**, or `Ctrl/Cmd + Shift + N`, opens a separate,
@@ -144,7 +144,7 @@ The bottom-right shows a live word count. Click it to hide or show the count whe
 
 Click **Theme** in the toolbar to choose a look — **Black & White**, **Fluffy & Dust**, or
 **Blossom & Rose** — and use the ◐ button beside it to switch between light and dark. Typeel
-opens in Cream & Slate (dark) by default. Your choice is remembered next time you open the app.
+opens in Fluffy & Dust (dark) by default. Your choice is remembered next time you open the app.
 
 Click **Font** to set the editor typeface — **Source Sans 3**, **Sulphur Point**, or
 **Ysabeau Infant**. That preference is remembered too.

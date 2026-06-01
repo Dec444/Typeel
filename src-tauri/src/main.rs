@@ -218,6 +218,9 @@ fn new_window(app: tauri::AppHandle) -> Result<(), String> {
         .inner_size(1100.0, 740.0)
         .min_inner_size(640.0, 480.0)
         .position(120.0 + offset, 120.0 + offset)
+        // Turn off Tauri's internal file drag-drop so the editor's own HTML5
+        // drag-and-drop (e.g. reordering tabs) works in this window too.
+        .disable_drag_drop_handler()
         .build()
         .map_err(|e| e.to_string())?;
     Ok(())

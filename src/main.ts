@@ -480,10 +480,11 @@ async function switchTab(id: number): Promise<void> {
   await loadTab(t);
 }
 
-// Add a new tab, reusing a pristine blank tab if the active one qualifies.
-async function addTab(t: Tab): Promise<void> {
+// Add a new tab. By default a pristine blank tab is reused (so Open/Welcome
+// don't leave an empty tab behind); pass reuseBlank=false to always add one.
+async function addTab(t: Tab, reuseBlank = true): Promise<void> {
   const cur = activeTab();
-  if (cur && isBlank(cur)) {
+  if (reuseBlank && cur && isBlank(cur)) {
     tabs[tabs.findIndex((x) => x.id === cur.id)] = t; // discard the blank
   } else {
     snapshotActive();
@@ -556,6 +557,16 @@ function renderTabs(): void {
 
     el.append(dot, label, close);
     el.addEventListener("click", () => void switchTab(t.id));
+    // Right-click or double-click a tab to rename it.
+    el.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startRename(t, label, el);
+    });
+    el.addEventListener("dblclick", (e) => {
+      e.preventDefault();
+      startRename(t, label, el);
+    });
 
     // --- drag to reorder ---
     el.addEventListener("dragstart", (e) => {
@@ -610,6 +621,48 @@ function clearDropMarks(): void {
   tabbar.querySelectorAll(".tab").forEach((el) => el.classList.remove("drop-before", "drop-after"));
 }
 
+// Inline-rename a tab's label. Renames the displayed title only (it does not
+// rename the file on disk). Enter/blur commits, Escape cancels.
+function startRename(t: Tab, labelEl: HTMLElement, tabEl: HTMLElement): void {
+  if (tabbar.querySelector(".tab-rename")) return; // one rename at a time
+  const wasDraggable = tabEl.draggable;
+  tabEl.draggable = false; // so dragging selects text instead of moving the tab
+
+  const input = document.createElement("input");
+  input.className = "tab-rename";
+  input.value = t.title;
+  labelEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  let done = false;
+  const finish = (commit: boolean): void => {
+    if (done) return;
+    done = true;
+    const name = input.value.trim();
+    if (commit && name) {
+      t.title = name;
+      if (t.id === activeId) titleEl.textContent = name;
+    }
+    tabEl.draggable = wasDraggable;
+    renderTabs();
+  };
+
+  input.addEventListener("keydown", (e) => {
+    e.stopPropagation(); // don't fire global shortcuts while typing
+    if (e.key === "Enter") {
+      e.preventDefault();
+      finish(true);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      finish(false);
+    }
+  });
+  input.addEventListener("click", (e) => e.stopPropagation());
+  input.addEventListener("dblclick", (e) => e.stopPropagation());
+  input.addEventListener("blur", () => finish(true));
+}
+
 // Move the dragged tab to just before/after the tab it was dropped on.
 function reorderTab(fromId: number | null, toId: number, placeAfter: boolean): void {
   if (fromId === null || fromId === toId) return;
@@ -629,7 +682,7 @@ function reorderTab(fromId: number | null, toId: number, placeAfter: boolean): v
 // ---------- new / welcome ----------
 // "New" opens a fresh tab; the working documents in other tabs are untouched.
 async function newFile(): Promise<void> {
-  await addTab(makeTab({ title: "Untitled", content: "" }));
+  await addTab(makeTab({ title: "Untitled", content: "" }), false);
 }
 
 // The pinned Welcome row opens (or focuses) a Welcome tab.
