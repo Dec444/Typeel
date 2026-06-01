@@ -109,19 +109,30 @@ block.
 
 ## Opening & saving files
 
-- **New document** — the **New** button, or `Ctrl/Cmd + N`.
+- **New document** — the **New** button, or `Ctrl/Cmd + N`. It opens in a new tab.
 - **Open a file** — the **Open** button, or `Ctrl/Cmd + O`. Images stored alongside the file
   (referenced by relative paths) are displayed automatically.
 - **Save** — the **Save** button, or `Ctrl/Cmd + S`. A dot beside the filename means you have
   unsaved changes.
 
+## Tabs & windows
+
+- **Tabs** — open as many documents as you like in one window. New and opened files become tabs;
+  `Ctrl/Cmd + T` opens a tab and `Ctrl/Cmd + W` closes the current one. Click a tab to switch, or
+  drag a tab sideways to reorder it.
+  The tab strip stays hidden while only one document is open, and each tab tracks its own unsaved
+  changes.
+- **New window** — the ⧉ button next to **New**, or `Ctrl/Cmd + Shift + N`, opens a separate,
+  fully independent editor window.
+- **Menu (macOS)** — a standard menu bar provides the same File/Edit/Window actions. On Windows and
+  Linux the in-app toolbar is the single source of controls.
+
 ## The sidebar
 
 - **Outline** — the sidebar lists the headings in the current document; click any heading to
   jump to it, and the section you're in stays highlighted as you write.
-- **Welcome** — the pinned **Welcome** entry opens the built-in guide at any time. It sets your
-  current document aside rather than closing it: a **← your file** button appears so you can
-  return to exactly where you left off, unsaved changes and all.
+- **Welcome** — the pinned **Welcome** entry opens the built-in guide in its own tab at any time,
+  so your other documents stay exactly as they were.
 - **Hide it** — the ❮ button at the top of the sidebar collapses it for a wider writing area,
   and a ❯ button at the left of the toolbar brings it back. Your choice is remembered.
 
@@ -131,8 +142,8 @@ The bottom-right shows a live word count. Click it to hide or show the count whe
 
 ## Themes & fonts
 
-Click **Theme** in the toolbar to choose a look — **Black & White**, **Cream & Slate**, or
-**Ivory & Rose** — and use the ◐ button beside it to switch between light and dark. Typeel
+Click **Theme** in the toolbar to choose a look — **Black & White**, **Fluffy & Dust**, or
+**Blossom & Rose** — and use the ◐ button beside it to switch between light and dark. Typeel
 opens in Cream & Slate (dark) by default. Your choice is remembered next time you open the app.
 
 Click **Font** to set the editor typeface — **Source Sans 3**, **Sulphur Point**, or

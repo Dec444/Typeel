@@ -6,6 +6,7 @@ import "./styles.css";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { marked } from "marked";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import welcomeMd from "./welcome.md?raw";
 
 // ---------- state ----------
@@ -20,10 +21,25 @@ let outlineHeadings: HTMLElement[] = [];
 let outlineTimer: ReturnType<typeof setTimeout> | undefined;
 let sidebarCollapsed = localStorage.getItem("typeel-sidebar") === "hidden";
 let editorFont = localStorage.getItem("typeel-font") || "source";
-// While viewing the pinned Welcome doc, we stash the working document here so
-// the user can return to it (including unsaved, untitled content) — see #2.
-let stashed: { content: string; path: string | null; title: string; dirty: boolean } | null = null;
-let viewingWelcome = false;
+
+// ---------- tabs (several documents inside one window) ----------
+// The module globals above (currentPath / savedMarkdown / dirty / imageMap) and
+// the live Crepe editor together represent the ACTIVE tab. Every other open
+// document is parked in this list and swapped in when its tab is selected.
+interface Tab {
+  id: number;
+  path: string | null;
+  title: string;
+  content: string; // markdown snapshot (the active tab's live text lives in the editor)
+  saved: string; // last-saved baseline, for the dirty check
+  dirty: boolean;
+  isWelcome: boolean;
+  images: Map<string, string>; // this document's dataURL -> original-src map
+}
+let tabs: Tab[] = [];
+let activeId = -1;
+let tabSeq = 1;
+let dragId: number | null = null; // tab currently being dragged for reordering
 
 const editorEl = document.getElementById("editor") as HTMLElement;
 const titleEl = document.getElementById("doc-title") as HTMLElement;
@@ -40,6 +56,7 @@ const appEl = document.getElementById("app") as HTMLElement;
 const sidebarToggle = document.getElementById("sidebar-toggle") as HTMLElement;
 const sidebarShow = document.getElementById("sidebar-show") as HTMLElement;
 const returnRow = document.getElementById("return-row") as HTMLElement;
+const tabbar = document.getElementById("tabbar") as HTMLElement;
 const fontBtn = document.getElementById("font-btn") as HTMLElement;
 const fontMenu = document.getElementById("font-menu") as HTMLElement;
 
@@ -76,6 +93,11 @@ function onEdit(): void {
 function setDirty(value: boolean): void {
   dirty = value;
   dirtyDot.classList.toggle("hidden", !value);
+  const t = activeTab();
+  if (t && t.dirty !== value) {
+    t.dirty = value;
+    renderTabs();
+  }
 }
 
 function getContent(): string {
@@ -323,18 +345,38 @@ async function openFileDialog(): Promise<void> {
 }
 
 async function loadFile(path: string): Promise<void> {
-  if (dirty && !confirm("Discard unsaved changes?")) return;
+  // Already open in a tab? Just focus it.
+  const existing = tabs.find((t) => t.path === path);
+  if (existing) {
+    await switchTab(existing.id);
+    return;
+  }
+
+  let content: string;
   try {
-    const content = await invoke<string>("read_file", { path });
-    const display = await localizeImages(content, dirOf(path));
-    currentPath = path;
-    titleEl.textContent = basename(path);
-    await mountEditor(display);
-    welcomeRow.classList.remove("active");
-    clearStash();
+    content = await invoke<string>("read_file", { path });
   } catch (e) {
     alert("Could not open file:\n" + e);
+    return;
   }
+
+  // Reuse a pristine blank tab instead of stacking an empty one behind the file.
+  const cur = activeTab();
+  const reuse = !!cur && isBlank(cur);
+  // Preserve the OUTGOING tab (its content + image map) before we repoint globals.
+  if (!reuse) snapshotActive();
+
+  const images = new Map<string, string>();
+  imageMap = images; // localizeImages fills the active map
+  const display = await localizeImages(content, dirOf(path));
+
+  const t = makeTab({ path, title: basename(path), content: display, saved: display, images });
+  if (reuse) {
+    tabs[tabs.findIndex((x) => x.id === cur!.id)] = t;
+  } else {
+    tabs.push(t);
+  }
+  await loadTab(t);
 }
 
 async function saveFile(): Promise<void> {
@@ -359,6 +401,15 @@ async function saveFile(): Promise<void> {
     await invoke("write_file", { path, contents: fileContent });
     savedMarkdown = editorContent;
     setDirty(false);
+    const t = activeTab();
+    if (t) {
+      t.path = currentPath;
+      t.title = titleEl.textContent || t.title;
+      t.saved = savedMarkdown;
+      t.isWelcome = false;
+    }
+    welcomeRow.classList.remove("active");
+    renderTabs();
   } catch (e) {
     alert("Could not save file:\n" + e);
   }
@@ -368,52 +419,227 @@ function basename(p: string): string {
   return p.split(/[\\/]/).pop() || p;
 }
 
-// ---------- new / welcome ----------
-function clearStash(): void {
-  stashed = null;
-  viewingWelcome = false;
-  returnRow.classList.add("hidden");
+// ---------- tab machinery ----------
+function activeTab(): Tab | undefined {
+  return tabs.find((t) => t.id === activeId);
 }
 
-async function newFile(): Promise<void> {
-  if (dirty && !confirm("Discard unsaved changes?")) return;
-  currentPath = null;
-  titleEl.textContent = "Untitled";
-  await mountEditor("");
-  welcomeRow.classList.remove("active");
-  clearStash();
+// A tab that can be silently reused: empty, untitled, unsaved, not Welcome.
+function isBlank(t: Tab): boolean {
+  if (t.path || t.isWelcome) return false;
+  const live = t.id === activeId ? getContent() : t.content;
+  return !t.dirty && live.trim() === "";
 }
 
-// Open the pinned Welcome doc for reference WITHOUT losing the working file:
-// the current document is stashed and a "return" row appears in the sidebar.
-async function loadWelcome(): Promise<void> {
-  if (viewingWelcome) return;
-  stashed = {
-    content: getContent(),
-    path: currentPath,
-    title: titleEl.textContent || "Untitled",
-    dirty,
+function makeTab(init: Partial<Tab>): Tab {
+  const content = init.content ?? "";
+  return {
+    id: tabSeq++,
+    path: init.path ?? null,
+    title: init.title ?? "Untitled",
+    content,
+    saved: init.saved ?? content,
+    dirty: init.dirty ?? false,
+    isWelcome: init.isWelcome ?? false,
+    images: init.images ?? new Map<string, string>(),
   };
-  returnRow.textContent = "\u2190 " + stashed.title;
-  returnRow.classList.remove("hidden");
-  viewingWelcome = true;
-
-  currentPath = null;
-  titleEl.textContent = "Welcome";
-  await mountEditor(welcomeMd);
-  welcomeRow.classList.add("active");
 }
 
-// Restore the document that was open before the user clicked Welcome.
-async function returnToStashed(): Promise<void> {
-  if (!stashed) return;
-  const s = stashed;
-  currentPath = s.path;
-  titleEl.textContent = s.title;
-  await mountEditor(s.content); // mountEditor resets dirty to false…
-  if (s.dirty) setDirty(true); // …so re-apply the unsaved marker if needed
-  welcomeRow.classList.remove("active");
-  clearStash();
+// Write the live editor + globals back into the active tab object.
+function snapshotActive(): void {
+  const t = activeTab();
+  if (!t) return;
+  t.content = getContent();
+  t.path = currentPath;
+  t.title = titleEl.textContent || "Untitled";
+  t.saved = savedMarkdown;
+  t.dirty = dirty;
+  t.images = imageMap;
+}
+
+// Make a parked tab the live one: load its state into the globals and editor.
+async function loadTab(t: Tab): Promise<void> {
+  activeId = t.id;
+  currentPath = t.path;
+  imageMap = t.images;
+  titleEl.textContent = t.title;
+  const wantDirty = t.dirty; // mountEditor's setDirty(false) will overwrite t.dirty
+  const wantSaved = t.saved;
+  await mountEditor(t.content);
+  savedMarkdown = wantSaved;
+  if (wantDirty) setDirty(true);
+  welcomeRow.classList.toggle("active", t.isWelcome);
+  renderTabs();
+}
+
+async function switchTab(id: number): Promise<void> {
+  if (id === activeId) return;
+  const t = tabs.find((x) => x.id === id);
+  if (!t) return;
+  snapshotActive();
+  await loadTab(t);
+}
+
+// Add a new tab, reusing a pristine blank tab if the active one qualifies.
+async function addTab(t: Tab): Promise<void> {
+  const cur = activeTab();
+  if (cur && isBlank(cur)) {
+    tabs[tabs.findIndex((x) => x.id === cur.id)] = t; // discard the blank
+  } else {
+    snapshotActive();
+    tabs.push(t);
+  }
+  await loadTab(t);
+}
+
+async function closeTab(id: number): Promise<void> {
+  const idx = tabs.findIndex((t) => t.id === id);
+  if (idx === -1) return;
+  const isActive = id === activeId;
+  const t = tabs[idx];
+  const isDirty = isActive ? dirty : t.dirty;
+  const name = isActive ? titleEl.textContent || "Untitled" : t.title;
+  if (isDirty && !confirm("Discard unsaved changes in \u201C" + name + "\u201D?")) return;
+
+  tabs.splice(idx, 1);
+  if (tabs.length === 0) {
+    // Never leave the window empty — drop back to a fresh blank document.
+    await addTab(makeTab({}));
+    return;
+  }
+  if (isActive) {
+    await loadTab(tabs[Math.min(idx, tabs.length - 1)]);
+  } else {
+    renderTabs();
+  }
+}
+
+function renderTabs(): void {
+  // Keep the active tab's display fields current (cheap; no content snapshot).
+  const at = activeTab();
+  if (at) {
+    at.title = titleEl.textContent || at.title;
+    at.dirty = dirty;
+  }
+
+  tabbar.innerHTML = "";
+  // With a single document, hide the strip to keep the clean, focused look.
+  if (tabs.length < 2) {
+    tabbar.classList.add("hidden");
+    return;
+  }
+  tabbar.classList.remove("hidden");
+
+  for (const t of tabs) {
+    const el = document.createElement("div");
+    el.className = "tab" + (t.id === activeId ? " active" : "");
+    el.title = t.path || t.title;
+    el.draggable = true;
+
+    const dot = document.createElement("span");
+    dot.className = "tab-dot" + (t.dirty ? "" : " hidden");
+    dot.textContent = "\u25CF";
+
+    const label = document.createElement("span");
+    label.className = "tab-label";
+    label.textContent = t.title;
+
+    const close = document.createElement("button");
+    close.className = "tab-close";
+    close.title = "Close tab";
+    close.innerHTML = "&#215;";
+    close.draggable = false;
+    close.addEventListener("click", (e) => {
+      e.stopPropagation();
+      void closeTab(t.id);
+    });
+
+    el.append(dot, label, close);
+    el.addEventListener("click", () => void switchTab(t.id));
+
+    // --- drag to reorder ---
+    el.addEventListener("dragstart", (e) => {
+      dragId = t.id;
+      el.classList.add("dragging");
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", String(t.id));
+      }
+    });
+    el.addEventListener("dragend", () => {
+      dragId = null;
+      clearDropMarks();
+      el.classList.remove("dragging");
+    });
+    el.addEventListener("dragover", (e) => {
+      if (dragId === null || dragId === t.id) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+      const after = isAfter(el, e.clientX);
+      el.classList.toggle("drop-after", after);
+      el.classList.toggle("drop-before", !after);
+    });
+    el.addEventListener("dragleave", () => {
+      el.classList.remove("drop-before", "drop-after");
+    });
+    el.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const after = isAfter(el, e.clientX);
+      clearDropMarks();
+      reorderTab(dragId, t.id, after);
+    });
+
+    tabbar.appendChild(el);
+  }
+
+  const add = document.createElement("button");
+  add.className = "tab-add";
+  add.title = "New tab";
+  add.innerHTML = "&#43;";
+  add.addEventListener("click", () => void newFile());
+  tabbar.appendChild(add);
+}
+
+// Is the cursor past the horizontal midpoint of a tab? (drop goes after it)
+function isAfter(el: HTMLElement, clientX: number): boolean {
+  const rect = el.getBoundingClientRect();
+  return clientX > rect.left + rect.width / 2;
+}
+
+function clearDropMarks(): void {
+  tabbar.querySelectorAll(".tab").forEach((el) => el.classList.remove("drop-before", "drop-after"));
+}
+
+// Move the dragged tab to just before/after the tab it was dropped on.
+function reorderTab(fromId: number | null, toId: number, placeAfter: boolean): void {
+  if (fromId === null || fromId === toId) return;
+  const from = tabs.findIndex((t) => t.id === fromId);
+  if (from === -1) return;
+  const [moved] = tabs.splice(from, 1);
+  let to = tabs.findIndex((t) => t.id === toId);
+  if (to === -1) {
+    tabs.splice(from, 0, moved); // target vanished; put it back
+    return;
+  }
+  if (placeAfter) to += 1;
+  tabs.splice(to, 0, moved);
+  renderTabs();
+}
+
+// ---------- new / welcome ----------
+// "New" opens a fresh tab; the working documents in other tabs are untouched.
+async function newFile(): Promise<void> {
+  await addTab(makeTab({ title: "Untitled", content: "" }));
+}
+
+// The pinned Welcome row opens (or focuses) a Welcome tab.
+async function loadWelcome(): Promise<void> {
+  const w = tabs.find((t) => t.isWelcome);
+  if (w) {
+    await switchTab(w.id);
+    return;
+  }
+  await addTab(makeTab({ title: "Welcome", content: welcomeMd, saved: welcomeMd, isWelcome: true }));
 }
 
 // ---------- document outline (headings of the current file) ----------
@@ -621,11 +847,19 @@ function applyFont(key: string): void {
 }
 
 // ---------- wiring ----------
+async function newWindow() {
+  try {
+    await invoke("new_window");
+  } catch (err) {
+    console.error("Could not open a new window:", err);
+  }
+}
+
 document.getElementById("new-file")!.addEventListener("click", newFile);
+document.getElementById("new-window")!.addEventListener("click", newWindow);
 document.getElementById("open-file")!.addEventListener("click", openFileDialog);
 document.getElementById("save-file")!.addEventListener("click", saveFile);
 welcomeRow.addEventListener("click", loadWelcome);
-returnRow.addEventListener("click", returnToStashed);
 sidebarToggle.addEventListener("click", () => setSidebar(true));
 sidebarShow.addEventListener("click", () => setSidebar(false));
 document.getElementById("toggle-theme")!.addEventListener("click", toggleDark);
@@ -694,12 +928,38 @@ window.addEventListener("keydown", (e) => {
     openFileDialog();
   } else if (mod && e.key.toLowerCase() === "n") {
     e.preventDefault();
+    if (e.shiftKey) newWindow();
+    else newFile();
+  } else if (mod && e.key.toLowerCase() === "t") {
+    e.preventDefault();
     newFile();
+  } else if (mod && e.key.toLowerCase() === "w") {
+    e.preventDefault();
+    void closeTab(activeId);
+  }
+});
+
+// Native menu items (macOS) forward their action here.
+void listen<string>("menu", (e) => {
+  switch (e.payload) {
+    case "new_tab":
+      void newFile();
+      break;
+    case "open":
+      void openFileDialog();
+      break;
+    case "save":
+      void saveFile();
+      break;
+    case "close_tab":
+      void closeTab(activeId);
+      break;
   }
 });
 
 window.addEventListener("beforeunload", (e) => {
-  if (dirty) {
+  snapshotActive();
+  if (tabs.some((t) => t.dirty)) {
     e.preventDefault();
     e.returnValue = "";
   }
@@ -708,12 +968,5 @@ window.addEventListener("beforeunload", (e) => {
 applyTheme();
 setSidebar(sidebarCollapsed);
 applyFont(editorFont);
-// Show Welcome as the initial document — it's the base doc, so there is nothing
-// to stash or return to yet (that only happens once a working file is open).
-void (async () => {
-  currentPath = null;
-  titleEl.textContent = "Welcome";
-  await mountEditor(welcomeMd);
-  welcomeRow.classList.add("active");
-  viewingWelcome = true;
-})();
+// Boot with Welcome as the first tab.
+void loadWelcome();

@@ -3,6 +3,10 @@
 
 use serde::Serialize;
 use std::fs;
+use std::sync::atomic::{AtomicU32, Ordering};
+
+// Monotonic counter so every spawned window gets a unique label.
+static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(1);
 
 #[derive(Serialize)]
 struct Entry {
@@ -202,6 +206,32 @@ fn save_image(dir: String, data: String, ext: String) -> Result<String, String> 
     Ok(fname)
 }
 
+/// Open another independent Typeel editor window.
+#[tauri::command]
+fn new_window(app: tauri::AppHandle) -> Result<(), String> {
+    let n = WINDOW_COUNTER.fetch_add(1, Ordering::SeqCst);
+    let label = format!("win-{n}");
+    // Light cascade so a new window doesn't land exactly on top of the last one.
+    let offset = 28.0 * ((n % 8) as f64);
+    tauri::WebviewWindowBuilder::new(&app, &label, tauri::WebviewUrl::App("index.html".into()))
+        .title("Typeel")
+        .inner_size(1100.0, 740.0)
+        .min_inner_size(640.0, 480.0)
+        .position(120.0 + offset, 120.0 + offset)
+        .build()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Find the window the user is currently working in (for routing menu actions).
+#[cfg(target_os = "macos")]
+fn focused_window(app: &tauri::AppHandle) -> Option<tauri::WebviewWindow> {
+    use tauri::Manager;
+    app.webview_windows()
+        .into_values()
+        .find(|w| w.is_focused().unwrap_or(false))
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -211,8 +241,74 @@ fn main() {
             list_dir,
             open_html_in_browser,
             read_image_data_url,
-            save_image
+            save_image,
+            new_window
         ])
+        .setup(|app| {
+            // A native menu only makes sense on macOS, where it lives in the
+            // top-of-screen menu bar. On Windows/Linux it would render as an
+            // in-window strip that clashes with Typeel's own toolbar, so we
+            // leave those platforms with the default (no app menu).
+            #[cfg(target_os = "macos")]
+            {
+                use tauri::menu::{AboutMetadata, MenuBuilder, SubmenuBuilder};
+                use tauri::Emitter;
+
+                let app_menu = SubmenuBuilder::new(app, "Typeel")
+                    .about(Some(AboutMetadata::default()))
+                    .separator()
+                    .services()
+                    .separator()
+                    .hide()
+                    .hide_others()
+                    .show_all()
+                    .separator()
+                    .quit()
+                    .build()?;
+
+                let file_menu = SubmenuBuilder::new(app, "File")
+                    .text("new_tab", "New Tab")
+                    .text("new_window", "New Window")
+                    .separator()
+                    .text("open", "Open\u{2026}")
+                    .text("save", "Save")
+                    .separator()
+                    .text("close_tab", "Close Tab")
+                    .build()?;
+
+                // Re-supplying the standard Edit items keeps copy/paste/undo
+                // working once we replace the default menu.
+                let edit_menu = SubmenuBuilder::new(app, "Edit")
+                    .undo()
+                    .redo()
+                    .separator()
+                    .cut()
+                    .copy()
+                    .paste()
+                    .select_all()
+                    .build()?;
+
+                let window_menu = SubmenuBuilder::new(app, "Window").minimize().build()?;
+
+                let menu = MenuBuilder::new(app)
+                    .items(&[&app_menu, &file_menu, &edit_menu, &window_menu])
+                    .build()?;
+                app.set_menu(menu)?;
+
+                app.on_menu_event(|app_handle, event| {
+                    let id = event.id().0.as_str();
+                    if id == "new_window" {
+                        let _ = new_window(app_handle.clone());
+                    } else if matches!(id, "new_tab" | "open" | "save" | "close_tab") {
+                        // The custom items drive frontend actions in the focused window.
+                        if let Some(win) = focused_window(app_handle) {
+                            let _ = win.emit("menu", id);
+                        }
+                    }
+                });
+            }
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

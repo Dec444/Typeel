@@ -7,9 +7,13 @@ and this project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
 
-## [0.1.3] - 2026-05-31
+- **Tabs.** Open several documents in one window. New documents and opened files appear as tabs; `Ctrl`/`Cmd`+`T` opens a tab, `Ctrl`/`Cmd`+`W` closes one, and clicking a tab switches to it. Tabs can be dragged sideways to reorder them. The tab strip stays hidden while only one document is open. Each tab keeps its own unsaved-changes state.
+- **Multiple windows.** Open additional editor windows with the toolbar button (⧉) next to **New**, or with `Ctrl`/`Cmd`+`Shift`+`N`. Each window is independent.
+- **Native menu (macOS).** A standard menu bar with File (New Tab, New Window, Open, Save, Close Tab), Edit, and Window entries. Windows and Linux keep the in-app toolbar only.
+
+## [0.1.3] - 2026-06-01
 
 ### Added
 
@@ -22,7 +26,7 @@ _Nothing yet._
 ### Changed
 
 - Typeel now **opens in Fluffy & Dust (dark)** by default.
-- **Fluffy & Dust** was recolored to a softer ivory/slate palette.
+- **Fluffy & Dust** was recolored to a softer Ivory/slate palette.
 - **Wider text column**, reducing the empty side margins on large or stretched windows.
 
 ### Removed
