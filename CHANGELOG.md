@@ -7,11 +7,7 @@ and this project follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Added
-
-- **Tabs.** Open several documents in one window. New documents and opened files appear as tabs; `Ctrl`/`Cmd`+`T` opens a tab, `Ctrl`/`Cmd`+`W` closes one, and clicking a tab switches to it. Tabs can be dragged sideways to reorder them. The tab strip stays hidden while only one document is open. Each tab keeps its own unsaved-changes state.
-- **Multiple windows.** Open additional editor windows with the toolbar button (⧉) next to **New**, or with `Ctrl`/`Cmd`+`Shift`+`N`. Each window is independent.
-- **Native menu (macOS).** A standard menu bar with File (New Tab, New Window, Open, Save, Close Tab), Edit, and Window entries. Windows and Linux keep the in-app toolbar only.
+None.
 
 ## [0.1.3] - 2026-06-01
 
@@ -22,6 +18,9 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - **Collapsible sidebar** — hide it with the ❮ button for a wider writing space, and bring it back with the ❯ button at the left of the toolbar. The state is remembered between sessions.
 - **Pinned Welcome** entry in the sidebar for quick access to the built-in guide.
 - **Images saved alongside your document.** Pasted or inserted images are written to an `assets` folder next to the file and referenced by path, so they persist and display when you reopen.
+- **Tabs.** Open several documents in one window. New documents and opened files appear as tabs; `Ctrl`/`Cmd`+`T` opens a tab, `Ctrl`/`Cmd`+`W` closes one, and clicking a tab switches to it. Tabs can be dragged sideways to reorder them. The tab strip stays hidden while only one document is open. Each tab keeps its own unsaved-changes state.
+- **Multiple windows.** Open additional editor windows with the toolbar button (⧉) next to **New**, or with `Ctrl`/`Cmd`+`Shift`+`N`. Each window is independent.
+- **Native menu (macOS).** A standard menu bar with File (New Tab, New Window, Open, Save, Close Tab), Edit, and Window entries. Windows and Linux keep the in-app toolbar only.
 
 ### Changed
 
