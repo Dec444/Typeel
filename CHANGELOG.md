@@ -36,7 +36,7 @@ _Nothing yet._
 ## Earlier releases
 
 Notes for 0.1.0–0.1.1 are available on the
-[GitHub Releases](https://github.com/<your-username>/typeel/releases) page.
+[GitHub Releases](https://github.com/Dec444/Typeel/releases) page.
 
-[Unreleased]: https://github.com/<your-username>/typeel/compare/v0.1.3...HEAD
-[0.1.3]: https://github.com/<your-username>/typeel/releases/tag/v0.1.3
+[Unreleased]: https://github.com/Dec444/Typeel/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Dec444/Typeel/releases/tag/v0.1.3
