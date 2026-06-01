@@ -15,7 +15,7 @@ rather compile it themselves, or who are on a platform without a ready-made down
 
 ### Option 1 — Download a ready-made installer (easiest)
 
-Go to the [**Releases**](https://github.com/Dec444/Typeel/releases) page and
+Go to the [**Releases**](https://github.com/<your-username>/typeel/releases) page and
 download the file for your computer:
 
 | Your system | Download |
@@ -61,8 +61,8 @@ and then a single build command.
 **2. Get the code**
 
 ```bash
-git clone https://github.com/Dec444/Typeel.git
-cd Typeel
+git clone https://github.com/<your-username>/typeel.git
+cd typeel
 ```
 
 **3. Build the app**
@@ -157,8 +157,10 @@ Click **Export** and pick:
 ## Feedback
 
 Found a bug or have an idea? Please open an issue on the
-[GitHub repository](https://github.com/Dec444/Typeel/issues).
+[GitHub repository](https://github.com/<your-username>/typeel/issues).
 
 ---
+
+See the [changelog](CHANGELOG.md) for what's new in each release.
 
 Free and open source under the [MIT license](LICENSE).

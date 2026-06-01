@@ -5,7 +5,7 @@ import "./styles.css";
 
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { marked } from "marked";
-import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+import { invoke } from "@tauri-apps/api/core";
 import welcomeMd from "./welcome.md?raw";
 
 // ---------- state ----------
@@ -138,10 +138,10 @@ function updateBlockType(): void {
 // ---------- file operations ----------
 // Local images in a Markdown file are written relative to that file's folder,
 // but the editor runs from the app's own origin, so those paths resolve to
-// nothing. On load we rewrite local image paths to Tauri asset URLs (which the
-// webview can read), remembering the originals so we can write them back as-is
-// on save. Remote (http/data/…) images are left untouched.
-let imageMap = new Map<string, string>(); // assetUrl -> original src as written
+// nothing. On load we read each local image through Rust and inline it as a
+// base64 data URL (which renders anywhere), remembering the originals so we can
+// write them back as-is on save. Remote (http/data/…) images are left untouched.
+let imageMap = new Map<string, string>(); // dataUrl -> original src as written
 
 function dirOf(p: string): string {
   const i = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
@@ -151,8 +151,7 @@ function dirOf(p: string): string {
 function isExternalSrc(src: string): boolean {
   return (
     /^(https?:|data:|asset:|blob:|tauri:|file:|#)/i.test(src) ||
-    src.startsWith("//") ||
-    src.includes("asset.localhost")
+    src.startsWith("//")
   );
 }
 
@@ -174,18 +173,36 @@ function resolvePath(dir: string, rel: string): string {
 const IMG_MD = /(!\[[^\]]*\]\()([^)\s]+)((?:\s+"[^"]*")?\))/g;
 const IMG_HTML = /(<img\b[^>]*?\bsrc=["'])([^"']+)(["'])/gi;
 
-function localizeImages(md: string, fileDir: string): string {
+async function localizeImages(md: string, fileDir: string): Promise<string> {
   imageMap = new Map();
-  const conv = (src: string): string => {
-    if (isExternalSrc(src)) return src;
+  const local = new Map<string, string>(); // original src -> data URL
+
+  // Collect every distinct local image reference first.
+  const found = new Set<string>();
+  for (const re of [IMG_MD, IMG_HTML]) {
+    re.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(md))) {
+      if (!isExternalSrc(m[2])) found.add(m[2]);
+    }
+  }
+
+  // Inline each one as a data URL (failures leave the original path in place).
+  for (const src of found) {
     const abs = isAbsoluteSrc(src) ? src : resolvePath(fileDir, src);
-    const url = convertFileSrc(abs);
-    imageMap.set(url, src);
-    return url;
-  };
+    try {
+      const dataUrl = await invoke<string>("read_image_data_url", { path: abs });
+      local.set(src, dataUrl);
+      imageMap.set(dataUrl, src);
+    } catch {
+      /* image missing or unreadable — leave it as written */
+    }
+  }
+
+  const sub = (src: string): string => local.get(src) || src;
   return md
-    .replace(IMG_MD, (_m, a, src, b) => a + conv(src) + b)
-    .replace(IMG_HTML, (_m, a, src, b) => a + conv(src) + b);
+    .replace(IMG_MD, (_m, a, src, b) => a + sub(src) + b)
+    .replace(IMG_HTML, (_m, a, src, b) => a + sub(src) + b);
 }
 
 function delocalizeImages(md: string): string {
@@ -206,9 +223,10 @@ async function loadFile(path: string): Promise<void> {
   if (dirty && !confirm("Discard unsaved changes?")) return;
   try {
     const content = await invoke<string>("read_file", { path });
+    const display = await localizeImages(content, dirOf(path));
     currentPath = path;
     titleEl.textContent = basename(path);
-    await mountEditor(localizeImages(content, dirOf(path)));
+    await mountEditor(display);
     welcomeRow.classList.remove("active");
     clearStash();
   } catch (e) {

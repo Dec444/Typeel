@@ -106,10 +106,57 @@ fn list_dir(path: String) -> Result<Vec<Entry>, String> {
     Ok(entries)
 }
 
+/// Read a local image file and return it as a base64 `data:` URL, which renders
+/// in the editor regardless of webview protocol/scope settings.
+#[tauri::command]
+fn read_image_data_url(path: String) -> Result<String, String> {
+    let bytes = fs::read(&path).map_err(|e| e.to_string())?;
+    let mime = match std::path::Path::new(&path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase())
+        .as_deref()
+    {
+        Some("png") => "image/png",
+        Some("jpg") | Some("jpeg") => "image/jpeg",
+        Some("gif") => "image/gif",
+        Some("webp") => "image/webp",
+        Some("svg") => "image/svg+xml",
+        Some("bmp") => "image/bmp",
+        Some("avif") => "image/avif",
+        Some("ico") => "image/x-icon",
+        _ => "application/octet-stream",
+    };
+    Ok(format!("data:{};base64,{}", mime, base64_encode(&bytes)))
+}
+
+/// Minimal, dependency-free base64 encoder.
+fn base64_encode(data: &[u8]) -> String {
+    const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity((data.len() + 2) / 3 * 4);
+    for chunk in data.chunks(3) {
+        let b0 = chunk[0] as u32;
+        let b1 = *chunk.get(1).unwrap_or(&0) as u32;
+        let b2 = *chunk.get(2).unwrap_or(&0) as u32;
+        let n = (b0 << 16) | (b1 << 8) | b2;
+        out.push(T[((n >> 18) & 63) as usize] as char);
+        out.push(T[((n >> 12) & 63) as usize] as char);
+        out.push(if chunk.len() > 1 { T[((n >> 6) & 63) as usize] as char } else { '=' });
+        out.push(if chunk.len() > 2 { T[(n & 63) as usize] as char } else { '=' });
+    }
+    out
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![read_file, write_file, list_dir, open_html_in_browser])
+        .invoke_handler(tauri::generate_handler![
+            read_file,
+            write_file,
+            list_dir,
+            open_html_in_browser,
+            read_image_data_url
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
