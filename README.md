@@ -4,9 +4,7 @@
 distraction-free writing experience — what you type is formatted live, right in front of
 you, with no split-screen preview to fuss with.
 
-<!-- Add a screenshot at docs/screenshot.png, then uncomment:
-![Typeel screenshot](docs/screenshot.png)
--->
+![image-20260602003114761](/Users/decaffee/Library/Application Support/typora-user-images/image-20260602003114761.png)
 
 ## Getting Typeel
 
