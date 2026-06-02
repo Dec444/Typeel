@@ -4,8 +4,6 @@
 distraction-free writing experience — what you type is formatted live, right in front of
 you, with no split-screen preview to fuss with.
 
-![image-20260602003114761](/Users/decaffee/Library/Application Support/typora-user-images/image-20260602003114761.png)
-
 ## Getting Typeel
 
 There are two ways to get Typeel. **Most people want Option 1.** Option 2 is for those who'd
